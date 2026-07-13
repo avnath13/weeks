@@ -15,9 +15,17 @@ interface HabitPickerProps {
   habits: SelectedHabit[];
   setHabits: React.Dispatch<React.SetStateAction<SelectedHabit[]>>;
   span: LifeSpan;
+  hiddenChips: string[];
+  onDeleteChip: (id: string) => void;
 }
 
-export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
+export function HabitPicker({
+  habits,
+  setHabits,
+  span,
+  hiddenChips,
+  onDeleteChip,
+}: HabitPickerProps) {
   const [customName, setCustomName] = useState("");
   const [showCustom, setShowCustom] = useState(false);
   const [capWarning, setCapWarning] = useState<string | null>(null);
@@ -114,18 +122,14 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {HABIT_PRESETS.map((p) => (
-          <button
+        {HABIT_PRESETS.filter((p) => !hiddenChips.includes(p.id)).map((p) => (
+          <div
             key={p.id}
-            type="button"
-            data-testid={`habit-chip-${p.id}`}
-            onClick={() => toggle(p.id)}
-            aria-pressed={isSelected(p.id)}
             className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider transition-all",
+              "flex items-center rounded-full border font-mono text-xs font-semibold uppercase tracking-wider transition-all",
               isSelected(p.id)
                 ? "border-transparent text-white shadow-sm"
-                : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground",
+                : "border-border bg-card text-muted-foreground",
             )}
             style={
               isSelected(p.id)
@@ -133,9 +137,34 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
                 : undefined
             }
           >
-            <span>{p.emoji}</span>
-            {p.label}
-          </button>
+            <button
+              type="button"
+              data-testid={`habit-chip-${p.id}`}
+              onClick={() => toggle(p.id)}
+              aria-pressed={isSelected(p.id)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-l-full py-1.5 pl-3.5 pr-1",
+                !isSelected(p.id) && "hover:text-foreground",
+              )}
+            >
+              <span>{p.emoji}</span>
+              {p.label}
+            </button>
+            <button
+              type="button"
+              aria-label={`Delete ${p.label} chip`}
+              data-testid={`habit-chip-delete-${p.id}`}
+              onClick={() => onDeleteChip(p.id)}
+              className={cn(
+                "rounded-r-full py-1.5 pl-1 pr-2.5 transition-opacity",
+                isSelected(p.id)
+                  ? "text-white/70 hover:text-white"
+                  : "text-muted-foreground/50 hover:text-destructive",
+              )}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
         ))}
         <button
           type="button"

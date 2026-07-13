@@ -11,7 +11,7 @@ import {
   type LifeSpan,
 } from "@/lib/timeMath";
 import type { SelectedHabit } from "@/lib/habits";
-import { loadState, saveState } from "@/lib/storage";
+import { clearAllData, loadState, saveState } from "@/lib/storage";
 
 export interface AppState {
   birthDateInput: string;
@@ -22,6 +22,12 @@ export interface AppState {
   setSleepHours: (v: number) => void;
   habits: SelectedHabit[];
   setHabits: React.Dispatch<React.SetStateAction<SelectedHabit[]>>;
+  /** Preset chip ids the user deleted from the picker. */
+  hiddenChips: string[];
+  deleteChip: (id: string) => void;
+  restoreChips: () => void;
+  /** Wipe all stored data on this device and reload clean. */
+  resetAll: () => void;
   reclaimMode: boolean;
   setReclaimMode: (v: boolean) => void;
   /** Derived - null until a valid birth date is entered. */
@@ -46,6 +52,9 @@ export function useAppState(): AppState {
   );
   const [habits, setHabits] = useState<SelectedHabit[]>(
     persisted?.habits ?? [],
+  );
+  const [hiddenChips, setHiddenChips] = useState<string[]>(
+    persisted?.hiddenChips ?? [],
   );
   const [reclaimMode, setReclaimMode] = useState(false);
 
@@ -76,11 +85,17 @@ export function useAppState(): AppState {
   useEffect(() => {
     const id = window.setTimeout(
       () =>
-        saveState({ birthDateInput, lifeExpectancy, sleepHours, habits }),
+        saveState({
+          birthDateInput,
+          lifeExpectancy,
+          sleepHours,
+          habits,
+          hiddenChips,
+        }),
       400,
     );
     return () => window.clearTimeout(id);
-  }, [birthDateInput, lifeExpectancy, sleepHours, habits]);
+  }, [birthDateInput, lifeExpectancy, sleepHours, habits, hiddenChips]);
 
   return {
     birthDateInput,
@@ -91,6 +106,17 @@ export function useAppState(): AppState {
     setSleepHours: (v) => setSleepHoursRaw(clampSleepHours(v)),
     habits,
     setHabits,
+    hiddenChips,
+    deleteChip: (id) => {
+      setHiddenChips((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      setHabits((prev) => prev.filter((h) => h.id !== id));
+    },
+    restoreChips: () => setHiddenChips([]),
+    resetAll: () => {
+      clearAllData();
+      window.location.hash = "";
+      window.location.reload();
+    },
     reclaimMode,
     setReclaimMode,
     span,

@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarClock, Grid3X3, History, Hourglass, Share2 } from "lucide-react";
+import {
+  CalendarClock,
+  Grid3X3,
+  History,
+  Hourglass,
+  Settings2,
+  Share2,
+} from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useAppState } from "@/hooks/useAppState";
 import { formatLadder, habitCost } from "@/lib/timeMath";
@@ -15,9 +22,10 @@ import { ShareSection } from "@/components/ShareSection";
 import { LifetimeStats } from "@/components/LifetimeStats";
 import { StatTiles } from "@/components/StatTiles";
 import { CountdownPanel } from "@/components/CountdownPanel";
+import { SettingsPanel } from "@/components/SettingsPanel";
 import { cn } from "@/lib/utils";
 
-type Tab = "life" | "habits" | "lifetime" | "countdown" | "share";
+type Tab = "life" | "habits" | "lifetime" | "countdown" | "share" | "settings";
 
 const TABS: { id: Tab; label: string; icon: typeof Grid3X3 }[] = [
   { id: "life", label: "Your life", icon: Grid3X3 },
@@ -25,6 +33,7 @@ const TABS: { id: Tab; label: string; icon: typeof Grid3X3 }[] = [
   { id: "lifetime", label: "Lifetime", icon: History },
   { id: "countdown", label: "Countdown", icon: CalendarClock },
   { id: "share", label: "Share", icon: Share2 },
+  { id: "settings", label: "Settings", icon: Settings2 },
 ];
 
 function tabFromHash(): Tab {
@@ -159,6 +168,8 @@ export default function App() {
                 habits={state.habits}
                 setHabits={state.setHabits}
                 span={span}
+                hiddenChips={state.hiddenChips}
+                onDeleteChip={state.deleteChip}
               />
             </div>
 
@@ -227,6 +238,14 @@ export default function App() {
             sleepHours={state.sleepHours}
             lifeExpectancy={state.lifeExpectancy}
             now={state.now}
+          />
+        )}
+
+        {span && tab === "settings" && (
+          <SettingsPanel
+            hiddenChips={state.hiddenChips}
+            onRestoreChips={state.restoreChips}
+            onResetAll={state.resetAll}
           />
         )}
 

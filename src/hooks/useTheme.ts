@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export type Theme = "light" | "dark";
 
-const STORAGE_KEY = "bigpicture.theme";
+const STORAGE_KEY = "weeks.theme";
 
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "light";

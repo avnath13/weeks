@@ -9,6 +9,8 @@ export interface PersistedState {
   lifeExpectancy: number;
   sleepHours: number;
   habits: SelectedHabit[];
+  /** Preset chip ids the user has deleted from the picker. */
+  hiddenChips: string[];
 }
 
 export function loadState(): PersistedState | null {
@@ -44,6 +46,9 @@ export function loadState(): PersistedState | null {
             ? h.reclaimHours
             : h.hoursPerDay,
       })),
+      hiddenChips: Array.isArray(parsed.hiddenChips)
+        ? parsed.hiddenChips.filter((c): c is string => typeof c === "string")
+        : [],
     };
   } catch {
     try {
@@ -60,5 +65,25 @@ export function saveState(state: PersistedState): void {
     window.localStorage.setItem(KEY, JSON.stringify(state));
   } catch {
     /* quota exceeded or private mode - the app works without persistence */
+  }
+}
+
+/** Every key this app writes. Kept in one place so reset can't miss one. */
+const ALL_KEYS = [
+  KEY,
+  "weeks.lifetime.v1",
+  "weeks.countdown.v1",
+  "weeks.theme",
+  "bigpicture.theme", // legacy theme key from before the weeks.* rename
+];
+
+/** Wipe everything the app stored on this device. */
+export function clearAllData(): void {
+  for (const key of ALL_KEYS) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      /* storage unavailable: nothing to clear */
+    }
   }
 }
