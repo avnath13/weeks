@@ -1,7 +1,7 @@
 import { parseScreenTimeText, type ParseResult } from "./screentimeParse";
 
 /**
- * Tesseract.js wrapper. The image is processed entirely on-device — it is
+ * Tesseract.js wrapper. The image is processed entirely on-device - it is
  * never uploaded anywhere. Lazy-loads the engine on first use.
  */
 

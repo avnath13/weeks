@@ -72,12 +72,22 @@ export function clampSleepHours(hours: number): number {
   return Math.min(SLEEP_MAX, Math.max(SLEEP_MIN, hours));
 }
 
-/** Death moment: birth + lifeExpectancy years (in exact week-scaled ms). */
+/**
+ * Death moment: birth + lifeExpectancy CALENDAR years, so leap years are
+ * counted exactly (a person born in 2000 living to 80 crosses 20 leap days,
+ * and their grid reflects that). A Feb 29 birthday in a non-leap target year
+ * would roll over to Mar 1; clamp back to Feb 28 so the lifespan never gains
+ * a phantom day.
+ */
 export function deathMs(inputs: LifeInputs): number {
-  return (
-    inputs.birthMs +
-    clampLifeExpectancy(inputs.lifeExpectancy) * WEEKS_PER_YEAR * MS_PER_WEEK
-  );
+  const birth = new Date(inputs.birthMs);
+  const years = Math.round(clampLifeExpectancy(inputs.lifeExpectancy));
+  const target = new Date(birth.getTime());
+  target.setFullYear(birth.getFullYear() + years);
+  if (target.getMonth() !== birth.getMonth()) {
+    target.setDate(target.getDate() - 1);
+  }
+  return target.getTime();
 }
 
 export function computeLifeSpan(inputs: LifeInputs, now: number): LifeSpan {

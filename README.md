@@ -1,27 +1,41 @@
-# Weeks — your life in boxes
+# Weeks - your life in boxes
 
 Your life is ~4,000 weeks. This app shows where the rest of them are going:
 pick your habits (or upload your iOS/Android Screen Time screenshot), and see
 them converted into **weeks · months · years of your remaining waking life**,
-painted onto a life grid — one box per week.
+painted onto a life grid - one box per week.
 
 Sibling app to [bigpicture](https://github.com/avnath13/bigpicture); shares
 its design system (tokens, Sora/Inter, motion, event palette).
 
 ## Features
 
-- **Life grid** — canvas-rendered (4,000+ cells), animated fill, one box per
-  week, habit costs painted from the end of life backwards.
-- **Waking-time math** — all conversions are denominated in waking hours
+Four tools, tabbed (hash-linkable: `#life`, `#habits`, `#lifetime`, `#share`):
+
+- **Your life** - inputs plus the full grid, ticker, and progress bar.
+- **Habits** - the converter. Desktop: controls on the left, a sticky live
+  grid on the right so slider changes show their impact instantly. Mobile:
+  the grid stacks directly under the picker.
+- **Lifetime** - retrospective calculator (inspired by lifeecalendar.com):
+  years already spent sleeping, working, on your phone, and so on, plus the
+  projected years to come, each editable.
+- **Share** - the card generator.
+
+Details:
+
+- **Life grid** - canvas-rendered (4,000+ cells), animated fill, one box per
+  week, habit costs painted from the end of life backwards. Leap years are
+  counted exactly (calendar-year death date, Feb 29 birthdays clamped).
+- **Waking-time math** - all conversions are denominated in waking hours
   (24h − your sleep, default 8h). Unit ladder: weeks · months · years · % of
   remaining waking life, plus rotating lived-experience equivalences.
-- **Screen Time OCR** — drop a Screen Time / Digital Wellbeing screenshot;
+- **Screen Time OCR** - drop a Screen Time / Digital Wellbeing screenshot;
   parsed 100% on-device with Tesseract.js (never uploaded). Handles weekly vs
   daily views, garbled OCR names, dark-mode screenshots; always falls back to
   manual entry.
-- **Reclaim mode** — drag a habit down, watch the weeks come back (emerald
+- **Reclaim mode** - drag a habit down, watch the weeks come back (emerald
   band on the grid).
-- **Share cards** — deterministic canvas rendering: 1080×1920 story +
+- **Share cards** - deterministic canvas rendering: 1080×1920 story +
   1200×630 OG, native share sheet with download fallback.
 - Light/dark themes, mobile-first responsive, localStorage persistence,
   `prefers-reduced-motion` respected, no backend, no accounts.

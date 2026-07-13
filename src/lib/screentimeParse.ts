@@ -71,7 +71,7 @@ function normalize(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-/** Levenshtein distance capped at 3 (early exit) — enough for OCR noise. */
+/** Levenshtein distance capped at 3 (early exit) - enough for OCR noise. */
 function editDistance(a: string, b: string, cap = 3): number {
   if (Math.abs(a.length - b.length) > cap) return cap + 1;
   const dp = Array.from({ length: a.length + 1 }, (_, i) => i);
@@ -158,8 +158,8 @@ export function parseScreenTimeText(text: string): ParseResult {
   const seen = new Set<string>();
 
   // Screen Time lists come in two layouts: name and duration on the SAME
-  // line ("Instagram 14h 32m" — common when OCR merges columns) or the name
-  // on one line with the duration on the NEXT ("Instagram" / "14h 32m" —
+  // line ("Instagram 14h 32m" - common when OCR merges columns) or the name
+  // on one line with the duration on the NEXT ("Instagram" / "14h 32m" -
   // the native iOS list layout). Handle both.
   for (let idx = 0; idx < lines.length; idx++) {
     const line = lines[idx];

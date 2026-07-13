@@ -24,7 +24,7 @@ export interface AppState {
   setHabits: React.Dispatch<React.SetStateAction<SelectedHabit[]>>;
   reclaimMode: boolean;
   setReclaimMode: (v: boolean) => void;
-  /** Derived — null until a valid birth date is entered. */
+  /** Derived - null until a valid birth date is entered. */
   span: LifeSpan | null;
   birthIssue: BirthDateIssue | null;
   now: number;
@@ -47,7 +47,7 @@ export function useAppState(): AppState {
   );
   const [reclaimMode, setReclaimMode] = useState(false);
 
-  // "now" ticks weekly-precision state forward once a minute — cheap, and
+  // "now" ticks weekly-precision state forward once a minute - cheap, and
   // keeps a left-open tab honest across midnight boundaries.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

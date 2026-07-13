@@ -38,11 +38,11 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
       );
       if (capped)
         setCapWarning(
-          `${preset.label} was capped at ${formatHoursPerDay(hours)} — your habits can't exceed your ${span.wakingHoursPerDay} waking hours.`,
+          `${preset.label} was capped at ${formatHoursPerDay(hours)} - your habits can't exceed your ${span.wakingHoursPerDay} waking hours.`,
         );
       if (hours <= 0) {
         setCapWarning(
-          `No waking hours left for ${preset.label} — reduce another habit first.`,
+          `No waking hours left for ${preset.label} - reduce another habit first.`,
         );
         return prev;
       }
@@ -63,7 +63,7 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
         );
         if (capped)
           setCapWarning(
-            `Capped at ${formatHoursPerDay(hours)} — your habits can't exceed your ${span.wakingHoursPerDay} waking hours.`,
+            `Capped at ${formatHoursPerDay(hours)} - your habits can't exceed your ${span.wakingHoursPerDay} waking hours.`,
           );
         return {
           ...h,
@@ -84,7 +84,7 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
         CUSTOM_COLOR_VARS[prev.length % CUSTOM_COLOR_VARS.length];
       const { hours } = capHabitHours(1, totalHours(prev), span.wakingHoursPerDay);
       if (hours <= 0) {
-        setCapWarning("No waking hours left — reduce another habit first.");
+        setCapWarning("No waking hours left - reduce another habit first.");
         return prev;
       }
       return [
@@ -109,7 +109,7 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
         Where do your waking hours go?
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Tap a habit — averages are pre-filled, drag to match your reality.
+        Tap a habit - averages are pre-filled, drag to match your reality.
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">

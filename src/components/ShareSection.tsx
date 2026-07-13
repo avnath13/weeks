@@ -75,7 +75,7 @@ export function ShareSection({
       if (outcome === "downloaded") setFeedback("Saved to your downloads.");
       else if (outcome === "shared") setFeedback("Shared.");
     } catch {
-      setFeedback("Couldn't generate the image on this browser — try the copy button.");
+      setFeedback("Couldn't generate the image on this browser - try the copy button.");
     } finally {
       setBusy(false);
     }
@@ -96,7 +96,7 @@ export function ShareSection({
       ]);
       setFeedback("Copied to clipboard.");
     } catch {
-      setFeedback("Clipboard not available here — use Share instead.");
+      setFeedback("Clipboard not available here - use Share instead.");
     }
   };
 

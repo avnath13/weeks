@@ -20,9 +20,9 @@ interface HeroProps {
 
 const ISSUE_COPY: Record<BirthDateIssue, string> = {
   empty: "",
-  invalid: "That date doesn't exist — check the day and month.",
+  invalid: "That date doesn't exist - check the day and month.",
   future: "You haven't been born yet? Pick a date in the past.",
-  "too-old": "Over 120 years — check the year.",
+  "too-old": "Over 120 years - check the year.",
 };
 
 function Stepper({
@@ -143,7 +143,7 @@ export function Hero({
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Everything below is measured in <strong>waking time</strong> — your{" "}
+          Everything below is measured in <strong>waking time</strong> - your{" "}
           {24 - sleepHours} waking hours a day.
         </p>
       </div>

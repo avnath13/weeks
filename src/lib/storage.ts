@@ -49,7 +49,7 @@ export function loadState(): PersistedState | null {
     try {
       window.localStorage.removeItem(KEY);
     } catch {
-      /* storage unavailable (private mode) — nothing to do */
+      /* storage unavailable (private mode) - nothing to do */
     }
     return null;
   }
@@ -59,6 +59,6 @@ export function saveState(state: PersistedState): void {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(state));
   } catch {
-    /* quota exceeded or private mode — the app works without persistence */
+    /* quota exceeded or private mode - the app works without persistence */
   }
 }

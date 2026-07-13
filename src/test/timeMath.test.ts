@@ -4,6 +4,7 @@ import {
   clampLifeExpectancy,
   clampSleepHours,
   computeLifeSpan,
+  deathMs,
   formatHoursPerDay,
   formatLadder,
   habitCost,
@@ -64,11 +65,14 @@ describe("parseDateInput", () => {
 
 describe("computeLifeSpan", () => {
   it("computes a 30-year-old with expectancy 80", () => {
-    const span = computeLifeSpan(
-      { birthMs: birth(30), lifeExpectancy: 80, sleepHours: 8 },
-      NOW,
+    const inputs = { birthMs: birth(30), lifeExpectancy: 80, sleepHours: 8 };
+    const span = computeLifeSpan(inputs, NOW);
+    // Calendar-exact: total weeks derive from the real death date.
+    expect(span.totalWeeks).toBe(
+      Math.round((deathMs(inputs) - inputs.birthMs) / MS_PER_WEEK),
     );
-    expect(span.totalWeeks).toBe(Math.round(80 * WEEKS_PER_YEAR));
+    // Sanity: within a week of the 80-year average.
+    expect(Math.abs(span.totalWeeks - 80 * WEEKS_PER_YEAR)).toBeLessThan(1.5);
     expect(span.livedWeeks).toBe(Math.floor(30 * WEEKS_PER_YEAR));
     expect(span.remainingWeeks).toBe(span.totalWeeks - span.livedWeeks);
     expect(span.wakingHoursPerDay).toBe(16);
@@ -109,6 +113,29 @@ describe("computeLifeSpan", () => {
     expect(span.livedWeeks).toBe(0);
     expect(span.currentWeekNumber).toBe(1);
     expect(span.remainingWeeks).toBe(span.totalWeeks);
+  });
+
+  it("counts leap days exactly (born 2000-01-01, 4 years = 1461 days)", () => {
+    const birthMs = new Date(2000, 0, 1).getTime();
+    const death = deathMs({ birthMs, lifeExpectancy: 40, sleepHours: 8 });
+    // Wide check via a short window: 2000-01-01 + 4y crosses one leap day.
+    const fourYears = new Date(2004, 0, 1).getTime();
+    expect(Math.round((fourYears - birthMs) / 86_400_000)).toBe(1461);
+    // 40 calendar years from 2000-01-01 is 2040-01-01, with 10 leap days.
+    expect(new Date(death).getFullYear()).toBe(2040);
+    expect(Math.round((death - birthMs) / 86_400_000)).toBe(40 * 365 + 10);
+  });
+
+  it("clamps a Feb 29 birthday to Feb 28 in non-leap target years", () => {
+    const birthMs = new Date(2000, 1, 29).getTime();
+    const nonLeap = new Date(
+      deathMs({ birthMs, lifeExpectancy: 45, sleepHours: 8 }),
+    );
+    expect([nonLeap.getMonth(), nonLeap.getDate()]).toEqual([1, 28]); // 2045-02-28
+    const leap = new Date(
+      deathMs({ birthMs, lifeExpectancy: 44, sleepHours: 8 }),
+    );
+    expect([leap.getMonth(), leap.getDate()]).toEqual([1, 29]); // 2044-02-29
   });
 
   it("clamps out-of-range expectancy and sleep", () => {

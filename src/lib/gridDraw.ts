@@ -3,7 +3,7 @@ import { habitCost } from "./timeMath";
 import type { SelectedHabit } from "./habits";
 
 /**
- * Shared canvas grid renderer — used by the on-screen LifeGrid and the
+ * Shared canvas grid renderer - used by the on-screen LifeGrid and the
  * exported share card so the two can never drift apart.
  */
 
@@ -32,7 +32,7 @@ export function cssVarHsl(name: string, alpha = 1): string {
 }
 
 /**
- * Habit bands are painted from the END of life backwards — the "these years
+ * Habit bands are painted from the END of life backwards - the "these years
  * are effectively erased" framing. Returns segments in draw order, plus the
  * emerald "reclaimed" band when reclaim mode has freed weeks.
  */

@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import type { LifeSpan } from "@/lib/timeMath";
 
-/** Flip-digit weeks ticker — same visual language as bigpicture's countdown. */
+/** Flip-digit weeks ticker - same visual language as bigpicture's countdown. */
 
 function Digit({ value }: { value: string }) {
   return (

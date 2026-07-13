@@ -56,7 +56,7 @@ T1kTok
 1h 38m
 `;
 
-describe("parseScreenTimeText — iOS weekly view", () => {
+describe("parseScreenTimeText - iOS weekly view", () => {
   const result = parseScreenTimeText(IOS_WEEKLY);
 
   it("detects weekly period from 'Daily Average' headline", () => {
@@ -79,7 +79,7 @@ describe("parseScreenTimeText — iOS weekly view", () => {
   });
 });
 
-describe("parseScreenTimeText — iOS daily view", () => {
+describe("parseScreenTimeText - iOS daily view", () => {
   const result = parseScreenTimeText(IOS_DAILY);
   it("detects daily period from 'Today'", () => {
     expect(result.guessedPeriod).toBe("day");
@@ -91,7 +91,7 @@ describe("parseScreenTimeText — iOS daily view", () => {
   });
 });
 
-describe("parseScreenTimeText — Android Digital Wellbeing", () => {
+describe("parseScreenTimeText - Android Digital Wellbeing", () => {
   const result = parseScreenTimeText(ANDROID_DAILY);
   it("detects daily period", () => {
     expect(result.guessedPeriod).toBe("day");
@@ -104,7 +104,7 @@ describe("parseScreenTimeText — Android Digital Wellbeing", () => {
   });
 });
 
-describe("parseScreenTimeText — OCR noise", () => {
+describe("parseScreenTimeText - OCR noise", () => {
   it("snaps garbled app names to the dictionary", () => {
     const result = parseScreenTimeText(GARBLED);
     expect(result.apps.find((a) => a.appId === "instagram")).toBeTruthy();

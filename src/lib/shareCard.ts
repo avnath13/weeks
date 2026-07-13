@@ -4,7 +4,7 @@ import type { SelectedHabit } from "./habits";
 import { drawLifeGrid, habitSegments, cssVarHsl } from "./gridDraw";
 
 /**
- * Share-card renderer. Draws directly to canvas (deterministic — no
+ * Share-card renderer. Draws directly to canvas (deterministic - no
  * DOM-to-image quirks). Cards are always rendered on the dark theme for a
  * consistent brand in feeds, regardless of the user's current theme.
  */

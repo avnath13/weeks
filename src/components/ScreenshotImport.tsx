@@ -245,7 +245,7 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
                   onClick={applyConfirmed}
                   className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm"
                 >
-                  Looks right — use these
+                  Looks right - use these
                 </button>
                 <button
                   type="button"
@@ -260,7 +260,7 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
 
           <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-event-emerald" />
-            Parsed entirely in your browser — the image is never uploaded.
+            Parsed entirely in your browser - the image is never uploaded.
           </p>
         </div>
       </div>

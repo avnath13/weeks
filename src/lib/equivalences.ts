@@ -2,7 +2,7 @@ import type { HabitCost } from "./timeMath";
 
 /**
  * Rotating "lived experience" equivalences for a habit's total cost.
- * One is shown at a time (auto-picked, shuffle on tap) — a list reads as a
+ * One is shown at a time (auto-picked, shuffle on tap) - a list reads as a
  * lecture, one reads as a revelation.
  */
 

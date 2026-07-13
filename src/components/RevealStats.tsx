@@ -46,7 +46,7 @@ export function RevealStats({ span, habits }: RevealStatsProps) {
           You've outlived your own forecast.
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Every week now is a bonus week — raise your life expectancy above to
+          Every week now is a bonus week - raise your life expectancy above to
           keep counting, or treat the whole grid as found time.
         </p>
       </section>

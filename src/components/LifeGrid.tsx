@@ -29,7 +29,7 @@ export function LifeGrid({ span, habits, reclaimMode, theme }: LifeGridProps) {
   const lastSignature = useRef<string>("");
   const reducedMotion = useReducedMotion();
 
-  // Signature of everything that affects pixels — animate only on change.
+  // Signature of everything that affects pixels - animate only on change.
   const signature = useMemo(
     () =>
       JSON.stringify({
