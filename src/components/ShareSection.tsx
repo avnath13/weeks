@@ -124,10 +124,10 @@ export function ShareSection({
             data-testid={`format-${f}`}
             onClick={() => setFormat(f)}
             className={cn(
-              "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+              "rounded-full border px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider transition-colors",
               format === f
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-accent",
+                ? "border-transparent bg-primary text-primary-foreground"
+                : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >
             {label}

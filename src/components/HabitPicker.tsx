@@ -122,10 +122,10 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
             onClick={() => toggle(p.id)}
             aria-pressed={isSelected(p.id)}
             className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all",
+              "flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider transition-all",
               isSelected(p.id)
                 ? "border-transparent text-white shadow-sm"
-                : "border-border bg-card text-foreground hover:bg-accent",
+                : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
             style={
               isSelected(p.id)
@@ -140,7 +140,7 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
         <button
           type="button"
           onClick={() => setShowCustom((s) => !s)}
-          className="flex items-center gap-1.5 rounded-full border border-dashed border-border px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
+          className="flex items-center gap-1.5 rounded-full border border-dashed border-border px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <Plus className="h-3.5 w-3.5" /> Custom
         </button>

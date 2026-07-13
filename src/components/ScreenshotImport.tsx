@@ -224,10 +224,10 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
                     data-testid={`period-${p}`}
                     onClick={() => setStage({ ...stage, period: p })}
                     className={cn(
-                      "rounded-full px-3 py-1 font-medium transition-colors",
+                      "rounded-full border px-3 py-1 font-mono font-semibold uppercase tracking-wider transition-colors",
                       stage.period === p
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground",
+                        ? "border-transparent bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground",
                     )}
                   >
                     {p}
