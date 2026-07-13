@@ -1,0 +1,186 @@
+import { useEffect, useRef, useState } from "react";
+import { Check, Copy, Download, Loader2, Share2 } from "lucide-react";
+import type { LifeSpan } from "@/lib/timeMath";
+import type { SelectedHabit } from "@/lib/habits";
+import {
+  renderShareCard,
+  shareOrDownload,
+  canvasToBlob,
+  type CardFormat,
+} from "@/lib/shareCard";
+import { cn } from "@/lib/utils";
+
+interface ShareSectionProps {
+  span: LifeSpan;
+  habits: SelectedHabit[];
+  reclaimMode: boolean;
+  sleepHours: number;
+  lifeExpectancy: number;
+}
+
+export function ShareSection({
+  span,
+  habits,
+  reclaimMode,
+  sleepHours,
+  lifeExpectancy,
+}: ShareSectionProps) {
+  const [format, setFormat] = useState<CardFormat>("story");
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const cardCanvas = useRef<HTMLCanvasElement | null>(null);
+
+  // Re-render the preview whenever inputs change (debounced a frame).
+  useEffect(() => {
+    let cancelled = false;
+    const id = window.setTimeout(async () => {
+      try {
+        const canvas = await renderShareCard(
+          { span, habits, reclaimMode, sleepHours, lifeExpectancy },
+          format,
+        );
+        if (cancelled) return;
+        cardCanvas.current = canvas;
+        const holder = previewRef.current;
+        if (holder) {
+          holder.innerHTML = "";
+          canvas.style.width = "100%";
+          canvas.style.height = "auto";
+          canvas.style.borderRadius = "0.75rem";
+          canvas.setAttribute("data-testid", "share-card-canvas");
+          holder.appendChild(canvas);
+        }
+      } catch {
+        /* preview failure is non-fatal; the button re-renders on demand */
+      }
+    }, 150);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(id);
+    };
+  }, [span, habits, reclaimMode, sleepHours, lifeExpectancy, format]);
+
+  const doShare = async () => {
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const canvas =
+        cardCanvas.current ??
+        (await renderShareCard(
+          { span, habits, reclaimMode, sleepHours, lifeExpectancy },
+          format,
+        ));
+      const outcome = await shareOrDownload(canvas, `weeks-${format}.png`);
+      if (outcome === "downloaded") setFeedback("Saved to your downloads.");
+      else if (outcome === "shared") setFeedback("Shared.");
+    } catch {
+      setFeedback("Couldn't generate the image on this browser — try the copy button.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doCopy = async () => {
+    setFeedback(null);
+    try {
+      const canvas =
+        cardCanvas.current ??
+        (await renderShareCard(
+          { span, habits, reclaimMode, sleepHours, lifeExpectancy },
+          format,
+        ));
+      const blob = await canvasToBlob(canvas);
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": blob }),
+      ]);
+      setFeedback("Copied to clipboard.");
+    } catch {
+      setFeedback("Clipboard not available here — use Share instead.");
+    }
+  };
+
+  if (habits.length === 0 && !span) return null;
+
+  return (
+    <section className="animate-fade-in-up" data-testid="share-section">
+      <h2 className="font-display text-2xl font-bold tracking-tight">
+        Make it real. Show someone.
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Your grid, one stat, no excuses.
+      </p>
+
+      <div className="mt-4 flex items-center gap-2">
+        {(
+          [
+            ["story", "Story (9:16)"],
+            ["og", "Wide (OG)"],
+          ] as [CardFormat, string][]
+        ).map(([f, label]) => (
+          <button
+            key={f}
+            type="button"
+            data-testid={`format-${f}`}
+            onClick={() => setFormat(f)}
+            className={cn(
+              "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+              format === f
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-accent",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div
+        ref={previewRef}
+        className={cn(
+          "mt-4 overflow-hidden rounded-xl border border-border shadow-lg",
+          format === "story" ? "mx-auto max-w-[280px]" : "max-w-md",
+        )}
+      />
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          data-testid="share-button"
+          onClick={() => void doShare()}
+          disabled={busy}
+          className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:scale-[1.02] disabled:opacity-60"
+        >
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Share2 className="h-4 w-4" />
+          )}
+          Get my card
+        </button>
+        <button
+          type="button"
+          onClick={() => void doCopy()}
+          className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:bg-accent"
+        >
+          <Copy className="h-4 w-4" /> Copy
+        </button>
+        <button
+          type="button"
+          onClick={() => void doShare()}
+          className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:bg-accent sm:hidden"
+        >
+          <Download className="h-4 w-4" /> Save
+        </button>
+      </div>
+      {feedback && (
+        <p
+          className="mt-2 flex items-center gap-1.5 text-sm text-event-emerald"
+          data-testid="share-feedback"
+        >
+          <Check className="h-4 w-4" /> {feedback}
+        </p>
+      )}
+    </section>
+  );
+}

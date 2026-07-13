@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root,
+  .light {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 245 75% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 245 60% 96%;
+    --accent-foreground: 245 75% 40%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 245 75% 60%;
+
+    --calendar-weekend: 220 14% 94%;
+    --calendar-today: 245 75% 60%;
+
+    --event-teal: 174 62% 47%;
+    --event-coral: 12 83% 62%;
+    --event-amber: 38 92% 50%;
+    --event-violet: 262 72% 62%;
+    --event-emerald: 152 58% 45%;
+    --event-rose: 340 75% 60%;
+    --event-sky: 204 80% 55%;
+    --event-orange: 24 90% 55%;
+    --event-slate: 215 20% 50%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 40% 10%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 222 40% 10%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 245 80% 68%;
+    --primary-foreground: 222 47% 9%;
+
+    --secondary: 222 30% 16%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 222 30% 15%;
+    --muted-foreground: 217 15% 62%;
+
+    --accent: 245 40% 20%;
+    --accent-foreground: 245 80% 80%;
+
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 25% 18%;
+    --input: 222 25% 18%;
+    --ring: 245 80% 68%;
+
+    --calendar-weekend: 222 30% 12%;
+    --calendar-today: 245 80% 68%;
+
+    --event-teal: 174 58% 50%;
+    --event-coral: 12 80% 65%;
+    --event-amber: 38 88% 58%;
+    --event-violet: 262 70% 68%;
+    --event-emerald: 152 52% 52%;
+    --event-rose: 340 72% 65%;
+    --event-sky: 204 76% 62%;
+    --event-orange: 24 88% 60%;
+    --event-slate: 215 18% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-background/70 backdrop-blur-xl border-border/60 supports-[backdrop-filter]:bg-background/55;
+  }
+
+  .calendar-cell {
+    @apply relative flex flex-col items-center justify-start shrink-0 border-r border-border/50
+      bg-card text-card-foreground transition-colors duration-150 select-none;
+  }
+
+  .calendar-cell-weekend {
+    @apply bg-calendar-weekend;
+  }
+
+  .calendar-cell-today {
+    @apply ring-2 ring-inset ring-primary bg-primary/5;
+  }
+
+  .today-pulse::after {
+    content: "";
+    @apply absolute inset-0 rounded-none pointer-events-none animate-today-pulse;
+  }
+
+  .event-bar {
+    @apply absolute left-0 flex items-center gap-1 rounded-md px-1.5 text-[10px] font-medium
+      leading-none text-white shadow-sm ring-1 ring-black/5 transition-all duration-150
+      cursor-pointer overflow-hidden whitespace-nowrap;
+  }
+
+  .event-bar:hover {
+    @apply ring-2 ring-foreground/30 -translate-y-px shadow-md z-20;
+  }
+}
+
+@layer utilities {
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+  .animation-delay-500 {
+    animation-delay: 500ms;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    height: 8px;
+  }
+  .no-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  .no-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dragging-cursor,
+  .dragging-cursor * {
+    cursor: crosshair !important;
+  }
+
+  /* While dragging an existing event: disable bar hit-testing so the day cells
+     under the cursor can be resolved, and lock the cursor + text selection. */
+  body.dragging-event {
+    user-select: none;
+  }
+  body.dragging-event .event-bar {
+    pointer-events: none;
+  }
+  body.drag-move,
+  body.drag-move * {
+    cursor: grabbing !important;
+  }
+  body.drag-resize,
+  body.drag-resize * {
+    cursor: ew-resize !important;
+  }
+
+  /* While exporting to image: freeze row fade-in so every month renders
+     fully (the clone would otherwise replay the staggered animation). */
+  .exporting .animate-fade-in-up {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
