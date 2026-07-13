@@ -164,12 +164,13 @@ export function parseScreenTimeText(text: string): ParseResult {
   let guessedPeriod: Period | null = null;
   let periodConfident = false;
 
+  // NOTE: "Daily Average" deliberately implies nothing. iOS shows that
+  // headline over lists of weekly totals AND over lists of per-day averages
+  // depending on the view; treating it as a signal misled real users. Only
+  // explicit day/week wording is trusted; otherwise magnitude decides and
+  // the UI flags the guess for the user to flip.
   const full = text.toLowerCase();
   if (/last week|this week|weekly/.test(full)) {
-    guessedPeriod = "week";
-    periodConfident = true;
-  } else if (/daily average/.test(full)) {
-    // iOS weekly view: headline says "Daily Average", list is weekly totals.
     guessedPeriod = "week";
     periodConfident = true;
   } else if (/\btoday\b|\byesterday\b|digital wellbeing|dashboard/.test(full)) {
@@ -227,9 +228,13 @@ export function parseScreenTimeText(text: string): ParseResult {
     });
   }
 
+  const maxHours = Math.max(0, ...apps.map((a) => a.hoursInPeriod));
   if (guessedPeriod === null) {
-    const maxHours = Math.max(0, ...apps.map((a) => a.hoursInPeriod));
     guessedPeriod = maxHours > 5 ? "week" : "day";
+  } else if (guessedPeriod === "day" && maxHours > 16) {
+    // No one has 16+ waking hours in one app in a day; must be weekly totals.
+    guessedPeriod = "week";
+    periodConfident = false;
   }
 
   return { apps, guessedPeriod, periodConfident };
@@ -242,6 +247,9 @@ function cleanLabel(raw: string): string | null {
     .trim();
   if (cleaned.length < 3 || cleaned.length > 30) return null;
   if (!/\p{L}{3}/u.test(cleaned)) return null;
+  // Bundle-id system noise ("com.apple.helpviewer") is not an app the user
+  // chose to use; drop it rather than surface it as a habit.
+  if (/^[a-z0-9-]+(\.[a-z0-9-]+){2,}$/i.test(cleaned)) return null;
   return cleaned;
 }
 

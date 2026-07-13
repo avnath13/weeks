@@ -111,6 +111,15 @@ async function preprocess(file: File): Promise<HTMLCanvasElement> {
   }
 }
 
+/**
+ * Raw text from the most recent OCR attempts, kept device-local so the user
+ * can copy it out of the confirm/error UI when reporting a bad parse.
+ */
+let lastOcrDiagnostic = "";
+export function getOcrDiagnostic(): string {
+  return lastOcrDiagnostic;
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
@@ -202,24 +211,29 @@ export async function recognizeScreenTime(file: File): Promise<ParseResult> {
   // each attempt is logged (device-local only) so field failures are
   // diagnosable from the browser console.
   let engineLoadFailures = 0;
+  lastOcrDiagnostic = "";
 
   try {
     const text = await withTimeout(paddleRecognize(canvas), PADDLE_TIMEOUT_MS);
     console.debug("[weeks] paddle OCR text:\n", text);
+    lastOcrDiagnostic += `--- paddle ---\n${text}\n`;
     const parsed = parseScreenTimeText(text);
     if (parsed.apps.length > 0) return parsed;
   } catch (e) {
     engineLoadFailures++;
+    lastOcrDiagnostic += `--- paddle failed: ${String(e)} ---\n`;
     console.debug("[weeks] paddle OCR failed:", e);
   }
 
   try {
     const text = await withTimeout(tesseractRecognize(canvas), OCR_TIMEOUT_MS);
     console.debug("[weeks] tesseract OCR text:\n", text);
+    lastOcrDiagnostic += `--- tesseract ---\n${text}\n`;
     const parsed = parseScreenTimeText(text);
     if (parsed.apps.length > 0) return parsed;
   } catch (e) {
     engineLoadFailures++;
+    lastOcrDiagnostic += `--- tesseract failed: ${String(e)} ---\n`;
     console.debug("[weeks] tesseract OCR failed:", e);
   }
 

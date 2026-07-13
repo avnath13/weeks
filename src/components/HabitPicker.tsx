@@ -257,9 +257,9 @@ export function HabitPicker({
               </div>
               <input
                 type="range"
-                min={0.25}
+                min={1 / 12}
                 max={Math.min(12, span.wakingHoursPerDay)}
-                step={0.25}
+                step={1 / 12}
                 value={h.hoursPerDay}
                 onChange={(e) => setHours(h.id, Number(e.target.value))}
                 aria-label={`${h.label} hours per day`}

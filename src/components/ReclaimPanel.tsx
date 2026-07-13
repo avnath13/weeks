@@ -101,7 +101,7 @@ export function ReclaimPanel({
                 type="range"
                 min={0}
                 max={h.hoursPerDay}
-                step={0.25}
+                step={Math.min(1 / 12, h.hoursPerDay)}
                 value={h.reclaimHours}
                 aria-label={`${h.label} reduced hours per day`}
                 data-testid={`reclaim-slider-${h.id}`}

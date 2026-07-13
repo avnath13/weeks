@@ -59,9 +59,9 @@ T1kTok
 describe("parseScreenTimeText - iOS weekly view", () => {
   const result = parseScreenTimeText(IOS_WEEKLY);
 
-  it("detects weekly period from 'Daily Average' headline", () => {
+  it("guesses weekly from magnitude, flagged as a guess (Daily Average is ambiguous)", () => {
     expect(result.guessedPeriod).toBe("week");
-    expect(result.periodConfident).toBe(true);
+    expect(result.periodConfident).toBe(false);
   });
 
   it("finds all four apps with correct durations", () => {
@@ -144,6 +144,29 @@ describe("parseScreenTimeText - OCR noise", () => {
     expect(weekly.periodConfident).toBe(false);
     const daily = parseScreenTimeText("Instagram\n2h 30m");
     expect(daily.guessedPeriod).toBe("day");
+  });
+});
+
+describe("parseScreenTimeText - period sanity", () => {
+  it("keeps small daily-average lists as 'day' even with Daily Average text", () => {
+    const result = parseScreenTimeText(
+      "Daily Average\n1h 34m\nMOST USED\nInstagram\n34m\nMail\n20m",
+    );
+    expect(result.guessedPeriod).toBe("day");
+  });
+
+  it("overrides an explicit 'today' when a single app exceeds 16h", () => {
+    const result = parseScreenTimeText("Today\nInstagram\n22h 10m");
+    expect(result.guessedPeriod).toBe("week");
+    expect(result.periodConfident).toBe(false);
+  });
+
+  it("drops bundle-id noise like com.apple.helpviewer", () => {
+    const result = parseScreenTimeText(
+      "Instagram\n2h 4m\ncom.apple.helpviewer\n1h 2m",
+    );
+    expect(result.apps).toHaveLength(1);
+    expect(result.apps[0].appId).toBe("instagram");
   });
 });
 

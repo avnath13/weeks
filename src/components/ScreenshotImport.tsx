@@ -1,6 +1,11 @@
 import { useCallback, useRef, useState } from "react";
-import { Camera, Loader2, Plus, ShieldCheck, Upload } from "lucide-react";
-import { OcrError, OCR_ERROR_COPY, recognizeScreenTime } from "@/lib/ocr";
+import { Camera, ClipboardCopy, Loader2, Plus, ShieldCheck, Upload } from "lucide-react";
+import {
+  getOcrDiagnostic,
+  OcrError,
+  OCR_ERROR_COPY,
+  recognizeScreenTime,
+} from "@/lib/ocr";
 import { toHoursPerDay, type Period } from "@/lib/screentimeParse";
 import { CUSTOM_COLOR_VARS, type SelectedHabit } from "@/lib/habits";
 import { capHabitHours, formatHoursPerDay, type LifeSpan } from "@/lib/timeMath";
@@ -101,7 +106,18 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
   const [dragOver, setDragOver] = useState(false);
   const [addName, setAddName] = useState("");
   const [addHours, setAddHours] = useState(1);
+  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const copyDiagnostic = async () => {
+    try {
+      await navigator.clipboard.writeText(getOcrDiagnostic());
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard unavailable: nothing to do */
+    }
+  };
 
   const handleFile = useCallback(async (file: File | undefined | null) => {
     if (!file) return;
@@ -275,13 +291,24 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
           {stage.kind === "error" && (
             <div className="mt-3 space-y-2" data-testid="ocr-error">
               <p className="text-sm text-destructive">{stage.message}</p>
-              <button
-                type="button"
-                onClick={() => setStage({ kind: "idle" })}
-                className="text-sm font-medium text-primary underline-offset-2 hover:underline"
-              >
-                Try another screenshot
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStage({ kind: "idle" })}
+                  className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  Try another screenshot
+                </button>
+                <button
+                  type="button"
+                  data-testid="ocr-copy-diagnostic"
+                  onClick={() => void copyDiagnostic()}
+                  className="flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  <ClipboardCopy className="h-3 w-3" />
+                  {copied ? "Copied" : "Copy what the reader saw"}
+                </button>
+              </div>
             </div>
           )}
 
@@ -290,6 +317,46 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
               <p className="text-sm font-medium">
                 Found in your screenshot. Fix anything we misread:
               </p>
+
+              <div
+                className={cn(
+                  "flex flex-wrap items-center gap-2 rounded-lg p-2.5 text-xs",
+                  stage.periodConfident ? "bg-accent/60" : "bg-event-amber/10",
+                )}
+              >
+                <span
+                  className={cn(
+                    "font-medium",
+                    !stage.periodConfident && "text-event-amber",
+                  )}
+                >
+                  {stage.periodConfident
+                    ? "These times are per:"
+                    : "Are these daily or weekly totals? We guessed:"}
+                </span>
+                {(["day", "week"] as Period[]).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    data-testid={`period-${p}`}
+                    onClick={() =>
+                      setStage((s) => (s.kind === "confirm" ? { ...s, period: p } : s))
+                    }
+                    className={cn(
+                      "rounded-full border px-3 py-1 font-mono font-semibold uppercase tracking-wider transition-colors",
+                      stage.period === p
+                        ? "border-transparent bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <span className="text-muted-foreground">
+                  Flipping re-converts every row you haven't edited.
+                </span>
+              </div>
+
               <div className="space-y-1.5">
                 {stage.rows.map((row, i) => (
                   <div
@@ -344,31 +411,6 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground">Screenshot shows totals per:</span>
-                {(["day", "week"] as Period[]).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    data-testid={`period-${p}`}
-                    onClick={() =>
-                      setStage((s) => (s.kind === "confirm" ? { ...s, period: p } : s))
-                    }
-                    className={cn(
-                      "rounded-full border px-3 py-1 font-mono font-semibold uppercase tracking-wider transition-colors",
-                      stage.period === p
-                        ? "border-transparent bg-primary text-primary-foreground"
-                        : "border-border bg-card text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {p}
-                  </button>
-                ))}
-                {!stage.periodConfident && (
-                  <span className="text-muted-foreground">(our best guess)</span>
-                )}
-              </div>
-
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -386,10 +428,20 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
                   Cancel
                 </button>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Editing a value pins it; the day/week toggle only re-converts
-                rows you haven't touched. {formatHoursPerDay(1 / 12)} is the
-                smallest step.
+              <p className="flex flex-wrap items-center gap-x-3 text-[11px] text-muted-foreground">
+                <span>
+                  Editing a value pins it. {formatHoursPerDay(1 / 12)} is the
+                  smallest step.
+                </span>
+                <button
+                  type="button"
+                  data-testid="ocr-copy-diagnostic"
+                  onClick={() => void copyDiagnostic()}
+                  className="flex items-center gap-1 underline-offset-2 hover:underline"
+                >
+                  <ClipboardCopy className="h-3 w-3" />
+                  {copied ? "Copied" : "Numbers look wrong? Copy what the reader saw"}
+                </button>
               </p>
             </div>
           )}
