@@ -2,6 +2,8 @@
 
 **See what your habits cost in weeks, months, and years of the life you have left.**
 
+**Live demo → [weeks-mu.vercel.app](https://weeks-mu.vercel.app/)**
+
 Your life is ~4,000 weeks. Weeks draws them as a grid, one box per week, then
 converts your daily habits into the boxes they consume. 2.5 hours of Instagram
 a day is not a number; it is 4.4 years of your remaining waking life, erased
