@@ -8,7 +8,7 @@ import {
 } from "@/lib/ocr";
 import { toHoursPerDay, type Period } from "@/lib/screentimeParse";
 import { CUSTOM_COLOR_VARS, type SelectedHabit } from "@/lib/habits";
-import { capHabitHours, formatHoursPerDay, type LifeSpan } from "@/lib/timeMath";
+import { capHabitHours, type LifeSpan } from "@/lib/timeMath";
 import { totalHours } from "@/lib/habits";
 import { cn } from "@/lib/utils";
 
