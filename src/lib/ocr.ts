@@ -18,6 +18,8 @@ export class OcrError extends Error {
   }
 }
 
+/** Paddle gets longer: its first run downloads ~25MB of models. */
+const PADDLE_TIMEOUT_MS = 90_000;
 const OCR_TIMEOUT_MS = 30_000;
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const ACCEPTED_TYPES = /^image\/(png|jpe?g|webp|heic|heif)$/i;
@@ -109,6 +111,81 @@ async function preprocess(file: File): Promise<HTMLCanvasElement> {
   }
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      window.setTimeout(() => reject(new OcrError("timeout")), ms),
+    ),
+  ]);
+}
+
+/**
+ * Primary engine: PaddleOCR (PP-OCRv6) via ppu-paddle-ocr on ONNX Runtime.
+ * Far more accurate than Tesseract on phone-UI text. The service is a
+ * singleton so the ~25MB model download happens once per session (and the
+ * browser caches it across sessions).
+ */
+interface PaddleLike {
+  recognize(input: HTMLCanvasElement): Promise<unknown>;
+}
+let paddleService: PaddleLike | null = null;
+
+/** Pull line-per-line text out of whatever shape the paddle result takes. */
+function paddleResultToText(result: unknown): string {
+  if (typeof result === "string") return result;
+  if (result && typeof result === "object") {
+    const r = result as { text?: unknown; lines?: unknown };
+    if (typeof r.text === "string") return r.text;
+    const lines = Array.isArray(r.lines) ? r.lines : Array.isArray(r.text) ? r.text : null;
+    if (lines) {
+      return lines
+        .map((line) => {
+          if (typeof line === "string") return line;
+          if (Array.isArray(line))
+            return line
+              .map((seg) =>
+                typeof seg === "string"
+                  ? seg
+                  : ((seg as { text?: string })?.text ?? ""),
+              )
+              .join(" ");
+          return (line as { text?: string })?.text ?? "";
+        })
+        .filter(Boolean)
+        .join("\n");
+    }
+  }
+  return "";
+}
+
+async function paddleRecognize(canvas: HTMLCanvasElement): Promise<string> {
+  const { PaddleOcrService } = await import("ppu-paddle-ocr/web");
+  if (!paddleService) {
+    const service = new PaddleOcrService();
+    await (service as unknown as { initialize(): Promise<void> }).initialize();
+    paddleService = service as unknown as PaddleLike;
+  }
+  const result = await paddleService.recognize(canvas);
+  return paddleResultToText(result);
+}
+
+/** Fallback engine: Tesseract in single-column mode. */
+async function tesseractRecognize(canvas: HTMLCanvasElement): Promise<string> {
+  const Tesseract = await import("tesseract.js");
+  const worker = await Tesseract.createWorker("eng");
+  try {
+    await worker.setParameters({
+      tessedit_pageseg_mode: "4" as never,
+      preserve_interword_spaces: "1",
+    });
+    const result = await worker.recognize(canvas);
+    return result.data.text ?? "";
+  } finally {
+    void worker.terminate();
+  }
+}
+
 export async function recognizeScreenTime(file: File): Promise<ParseResult> {
   const fileIssue = validateImageFile(file);
   if (fileIssue) throw new OcrError(fileIssue);
@@ -120,46 +197,33 @@ export async function recognizeScreenTime(file: File): Promise<ParseResult> {
     throw e instanceof OcrError ? e : new OcrError("unreadable");
   }
 
-  let TesseractModule: typeof import("tesseract.js");
-  try {
-    TesseractModule = await import("tesseract.js");
-  } catch {
-    throw new OcrError("engine-load-failed");
-  }
+  // Engine chain: Paddle first; fall back to Tesseract when Paddle fails to
+  // load/run OR reads text our parser can't find apps in. The raw text of
+  // each attempt is logged (device-local only) so field failures are
+  // diagnosable from the browser console.
+  let engineLoadFailures = 0;
 
-  const timeout = new Promise<never>((_, reject) =>
-    window.setTimeout(() => reject(new OcrError("timeout")), OCR_TIMEOUT_MS),
-  );
-
-  let text: string;
   try {
-    const run = (async () => {
-      const worker = await TesseractModule.createWorker("eng");
-      try {
-        // Screen Time screenshots are a single column of variable-size text;
-        // PSM 4 reads list rows far more reliably than full auto layout.
-        await worker.setParameters({
-          tessedit_pageseg_mode: "4" as never,
-          preserve_interword_spaces: "1",
-        });
-        const result = await worker.recognize(canvas);
-        return result.data.text ?? "";
-      } finally {
-        void worker.terminate();
-      }
-    })();
-    text = await Promise.race([run, timeout]);
+    const text = await withTimeout(paddleRecognize(canvas), PADDLE_TIMEOUT_MS);
+    console.debug("[weeks] paddle OCR text:\n", text);
+    const parsed = parseScreenTimeText(text);
+    if (parsed.apps.length > 0) return parsed;
   } catch (e) {
-    throw e instanceof OcrError ? e : new OcrError("unreadable");
+    engineLoadFailures++;
+    console.debug("[weeks] paddle OCR failed:", e);
   }
 
-  // Keep the raw OCR text inspectable: real-device failures are impossible
-  // to diagnose without it, and it never leaves the browser.
-  console.debug("[weeks] screen time OCR text:\n", text);
+  try {
+    const text = await withTimeout(tesseractRecognize(canvas), OCR_TIMEOUT_MS);
+    console.debug("[weeks] tesseract OCR text:\n", text);
+    const parsed = parseScreenTimeText(text);
+    if (parsed.apps.length > 0) return parsed;
+  } catch (e) {
+    engineLoadFailures++;
+    console.debug("[weeks] tesseract OCR failed:", e);
+  }
 
-  const parsed = parseScreenTimeText(text);
-  if (parsed.apps.length === 0) throw new OcrError("no-apps-found");
-  return parsed;
+  throw new OcrError(engineLoadFailures >= 2 ? "engine-load-failed" : "no-apps-found");
 }
 
 export const OCR_ERROR_COPY: Record<OcrFailure, string> = {

@@ -265,7 +265,8 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
               <span>
                 Reading on your device…{" "}
                 <span className="text-muted-foreground">
-                  this image never leaves your phone.
+                  this image never leaves your phone. First time? The reader
+                  downloads once (~25 MB) and is cached after.
                 </span>
               </span>
             </div>
