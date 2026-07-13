@@ -255,11 +255,11 @@ function cleanLabel(raw: string): string | null {
 
 /**
  * Convert a parsed entry to hours/day given the chosen period.
- * 5-minute granularity, with a 5-minute floor for any nonzero value so a
- * real-but-small duration never displays (or applies) as 0h/day.
+ * Minute precision, with a 1-minute floor for any nonzero value: 42m/week
+ * must come out as 6m/day, not rounded away to a coarser step.
  */
 export function toHoursPerDay(hoursInPeriod: number, period: Period): number {
   const perDay = period === "week" ? hoursInPeriod / 7 : hoursInPeriod;
   if (perDay <= 0) return 0;
-  return Math.max(1 / 12, Math.round(perDay * 12) / 12);
+  return Math.max(1 / 60, Math.round(perDay * 60) / 60);
 }

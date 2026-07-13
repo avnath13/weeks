@@ -429,10 +429,7 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
                 </button>
               </div>
               <p className="flex flex-wrap items-center gap-x-3 text-[11px] text-muted-foreground">
-                <span>
-                  Editing a value pins it. {formatHoursPerDay(1 / 12)} is the
-                  smallest step.
-                </span>
+                <span>Editing a value pins it. Values are minute-exact.</span>
                 <button
                   type="button"
                   data-testid="ocr-copy-diagnostic"

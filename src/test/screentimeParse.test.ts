@@ -171,15 +171,18 @@ describe("parseScreenTimeText - period sanity", () => {
 });
 
 describe("toHoursPerDay", () => {
-  it("divides weekly totals by 7 at 5-minute granularity", () => {
+  it("divides weekly totals by 7 at minute precision", () => {
     expect(toHoursPerDay(14, "week")).toBe(2);
-    expect(toHoursPerDay(14.5, "week")).toBeCloseTo(2 + 5 / 60, 5);
-    expect(toHoursPerDay(2.6, "day")).toBeCloseTo(2.5833, 3);
+    expect(toHoursPerDay(14.5, "week")).toBeCloseTo(2 + 4 / 60, 5); // 124 min
+    expect(toHoursPerDay(2.6, "day")).toBeCloseTo(2.6, 5); // 2h 36m exact
   });
 
-  it("floors small nonzero values at 5 minutes instead of 0", () => {
-    // 32 minutes over a week ≈ 4.6 min/day; must not collapse to 0h/day.
-    expect(toHoursPerDay(32 / 60, "week")).toBeCloseTo(1 / 12, 5);
+  it("42m/week comes out as exactly 6m/day", () => {
+    expect(toHoursPerDay(42 / 60, "week")).toBeCloseTo(6 / 60, 5);
+  });
+
+  it("floors small nonzero values at 1 minute instead of 0", () => {
+    expect(toHoursPerDay(3 / 60, "week")).toBeCloseTo(1 / 60, 5);
     expect(toHoursPerDay(0, "week")).toBe(0);
   });
 });
