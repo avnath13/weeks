@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Grid3X3, History, Hourglass, Share2 } from "lucide-react";
+import { CalendarClock, Grid3X3, History, Hourglass, Share2 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useAppState } from "@/hooks/useAppState";
 import { formatLadder, habitCost } from "@/lib/timeMath";
@@ -13,14 +13,17 @@ import { RevealStats } from "@/components/RevealStats";
 import { ReclaimPanel } from "@/components/ReclaimPanel";
 import { ShareSection } from "@/components/ShareSection";
 import { LifetimeStats } from "@/components/LifetimeStats";
+import { StatTiles } from "@/components/StatTiles";
+import { CountdownPanel } from "@/components/CountdownPanel";
 import { cn } from "@/lib/utils";
 
-type Tab = "life" | "habits" | "lifetime" | "share";
+type Tab = "life" | "habits" | "lifetime" | "countdown" | "share";
 
 const TABS: { id: Tab; label: string; icon: typeof Grid3X3 }[] = [
   { id: "life", label: "Your life", icon: Grid3X3 },
   { id: "habits", label: "Habits", icon: Hourglass },
   { id: "lifetime", label: "Lifetime", icon: History },
+  { id: "countdown", label: "Countdown", icon: CalendarClock },
   { id: "share", label: "Share", icon: Share2 },
 ];
 
@@ -126,6 +129,7 @@ export default function App() {
                   <WeeksTicker span={span} />
                 </div>
                 <LifeProgressBar span={span} />
+                <StatTiles span={span} />
                 <LifeGrid
                   span={span}
                   habits={state.habits}
@@ -212,6 +216,17 @@ export default function App() {
             span={span}
             sleepHours={state.sleepHours}
             lifeExpectancy={state.lifeExpectancy}
+          />
+        )}
+
+        {span && state.birthMs !== null && tab === "countdown" && (
+          <CountdownPanel
+            span={span}
+            birthMs={state.birthMs}
+            theme={theme}
+            sleepHours={state.sleepHours}
+            lifeExpectancy={state.lifeExpectancy}
+            now={state.now}
           />
         )}
 

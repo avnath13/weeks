@@ -1,4 +1,4 @@
-import type { LifeSpan } from "./timeMath";
+import type { Countdown, LifeSpan } from "./timeMath";
 import { formatLadder, habitCost, reclaimedWeeks } from "./timeMath";
 import type { SelectedHabit } from "./habits";
 import { drawLifeGrid, habitSegments, cssVarHsl } from "./gridDraw";
@@ -173,6 +173,95 @@ export async function renderShareCard(
       },
     );
   }
+
+  return canvas;
+}
+
+export interface CountdownCardData {
+  span: LifeSpan;
+  label: string;
+  countdown: Countdown;
+  sleepHours: number;
+  lifeExpectancy: number;
+}
+
+/** Story-format card for a countdown: highlight band instead of habit bands. */
+export async function renderCountdownCard(
+  data: CountdownCardData,
+): Promise<HTMLCanvasElement> {
+  try {
+    await Promise.all([
+      document.fonts.load('700 60px "Sora"'),
+      document.fonts.load('500 30px "Inter"'),
+      document.fonts.ready,
+    ]);
+  } catch {
+    /* system fallback fonts still render fine */
+  }
+
+  const { w, h } = FORMATS.story;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas-unavailable");
+
+  const bg = "hsl(222 47% 7%)";
+  const fg = "hsl(210 40% 96%)";
+  const muted = "hsl(217 15% 62%)";
+  const primary = "hsl(245 80% 68%)";
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+  const pad = 88;
+
+  ctx.fillStyle = primary;
+  ctx.font = '800 44px "Sora", system-ui, sans-serif';
+  ctx.fillText("WEEKS", pad, pad + 44);
+
+  ctx.fillStyle = fg;
+  ctx.font = '700 72px "Sora", system-ui, sans-serif';
+  const title = `${data.countdown.boxesUntil.toLocaleString()} boxes until ${data.label}.`;
+  let y = pad + 180;
+  for (const line of wrapText(ctx, title, w - pad * 2)) {
+    ctx.fillText(line, pad, y);
+    y += 88;
+  }
+
+  ctx.fillStyle = muted;
+  ctx.font = '500 36px "Inter", system-ui, sans-serif';
+  const sub = `${data.countdown.daysUntil.toLocaleString()} days. ${data.countdown.percentOfRemainingWeeks.toFixed(1)}% of the weeks I have left.`;
+  for (const line of wrapText(ctx, sub, w - pad * 2)) {
+    ctx.fillText(line, pad, y + 8);
+    y += 50;
+  }
+
+  const gridTop = y + 70;
+  const gridBottom = h - 210;
+  drawLifeGrid(
+    ctx,
+    data.span,
+    [
+      {
+        startWeek: data.countdown.startWeek,
+        count: data.countdown.boxesUntil,
+        color: primary,
+      },
+    ],
+    { lived: "hsl(222 30% 26%)", remaining: "hsl(222 30% 13%)", currentWeek: primary },
+    { x: pad, y: gridTop, width: w - pad * 2, height: gridBottom - gridTop },
+  );
+
+  ctx.fillStyle = muted;
+  ctx.font = '500 28px "Inter", system-ui, sans-serif';
+  ctx.fillText(
+    `1 box = 1 week of my life · life expectancy ${data.lifeExpectancy}`,
+    pad,
+    h - 120,
+  );
+  ctx.fillStyle = fg;
+  ctx.font = '600 30px "Inter", system-ui, sans-serif';
+  ctx.fillText("What are you counting down to?", pad, h - 72);
 
   return canvas;
 }

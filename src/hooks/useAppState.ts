@@ -26,6 +26,8 @@ export interface AppState {
   setReclaimMode: (v: boolean) => void;
   /** Derived - null until a valid birth date is entered. */
   span: LifeSpan | null;
+  /** Local-midnight ms of the birth date, or null while invalid. */
+  birthMs: number | null;
   birthIssue: BirthDateIssue | null;
   now: number;
 }
@@ -92,6 +94,7 @@ export function useAppState(): AppState {
     reclaimMode,
     setReclaimMode,
     span,
+    birthMs,
     birthIssue,
     now,
   };

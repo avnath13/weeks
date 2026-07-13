@@ -3,6 +3,7 @@ import {
   capHabitHours,
   clampLifeExpectancy,
   clampSleepHours,
+  computeCountdown,
   computeLifeSpan,
   deathMs,
   formatHoursPerDay,
@@ -217,6 +218,61 @@ describe("reclaimedWeeks", () => {
       habitCost(2, span).weeks,
       5,
     );
+  });
+});
+
+describe("computeCountdown", () => {
+  const birthMs = birth(30);
+  const span = computeLifeSpan(
+    { birthMs, lifeExpectancy: 80, sleepHours: 8 },
+    NOW,
+  );
+
+  it("counts boxes and days to a future date", () => {
+    const target = NOW + 70 * 86_400_000; // 70 days out
+    const cd = computeCountdown(target, birthMs, span, NOW);
+    expect(cd.past).toBe(false);
+    expect(cd.daysUntil).toBe(70);
+    expect(cd.boxesUntil).toBe(10);
+    expect(cd.startWeek).toBe(span.livedWeeks);
+    expect(cd.percentOfRemainingWeeks).toBeCloseTo(
+      (10 / span.remainingWeeks) * 100,
+      5,
+    );
+    expect(cd.beyondGrid).toBe(false);
+  });
+
+  it("flags past dates", () => {
+    const cd = computeCountdown(NOW - 86_400_000, birthMs, span, NOW);
+    expect(cd.past).toBe(true);
+    expect(cd.daysUntil).toBe(0);
+    expect(cd.boxesUntil).toBe(0);
+  });
+
+  it("clamps events beyond the grid and flags them", () => {
+    const target = NOW + 200 * 365 * 86_400_000;
+    const cd = computeCountdown(target, birthMs, span, NOW);
+    expect(cd.beyondGrid).toBe(true);
+    expect(cd.boxesUntil).toBe(span.remainingWeeks);
+  });
+
+  it("handles today (zero boxes, not past)", () => {
+    const cd = computeCountdown(NOW + 3_600_000, birthMs, span, NOW);
+    expect(cd.past).toBe(false);
+    expect(cd.daysUntil).toBe(1);
+    expect(cd.boxesUntil).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("lived/total days", () => {
+  it("exposes lived and total day counts", () => {
+    const span = computeLifeSpan(
+      { birthMs: birth(30), lifeExpectancy: 80, sleepHours: 8 },
+      NOW,
+    );
+    expect(span.livedDays).toBe(Math.floor((NOW - birth(30)) / 86_400_000));
+    expect(span.totalDays).toBeGreaterThan(29_000); // ~80y in days
+    expect(span.livedDays).toBeLessThan(span.totalDays);
   });
 });
 

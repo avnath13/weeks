@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { History } from "lucide-react";
 import { WEEKS_PER_YEAR, type LifeSpan } from "@/lib/timeMath";
 import { formatHoursPerDay } from "@/lib/timeMath";
@@ -80,7 +80,7 @@ export function LifetimeStats({
   const yearsTo = (hoursPerDay: number, years: number) =>
     Math.max(0, (hoursPerDay * years * 365.2425) / 24 / 365.2425);
 
-  const rows = [
+  const unsortedRows = [
     {
       id: "sleep",
       label: "Sleeping",
@@ -108,7 +108,20 @@ export function LifetimeStats({
         toCome: yearsTo(a.hoursPerDay, activeYearsToCome),
       };
     }),
-  ].sort((x, y) => y.spent - x.spent);
+  ];
+
+  // Sort by years-spent ONCE per visit, then freeze the order. Re-sorting
+  // live would make a row leap to a new position mid-drag as its value
+  // crosses a neighbor's, yanking the slider out from under the finger.
+  const orderRef = useRef<string[] | null>(null);
+  if (orderRef.current === null) {
+    orderRef.current = [...unsortedRows]
+      .sort((x, y) => y.spent - x.spent)
+      .map((r) => r.id);
+  }
+  const rows = orderRef.current
+    .map((id) => unsortedRows.find((r) => r.id === id))
+    .filter((r): r is (typeof unsortedRows)[number] => r !== undefined);
 
   const setHours = (id: string, hours: number) =>
     setActivities((prev) =>
@@ -159,7 +172,7 @@ export function LifetimeStats({
 
               <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full rounded-full"
+                  className="h-full rounded-full transition-[width] duration-200 ease-out"
                   style={{
                     width: `${(total / maxTotal) * 100}%`,
                     background: `linear-gradient(to right, ${cssVarHsl(row.colorVar)} ${spentPct}%, ${cssVarHsl(row.colorVar, 0.3)} ${spentPct}%)`,

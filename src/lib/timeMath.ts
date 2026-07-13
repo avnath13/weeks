@@ -34,6 +34,8 @@ export interface LifeSpan {
   livedWeeks: number;
   remainingWeeks: number;
   remainingDays: number;
+  livedDays: number;
+  totalDays: number;
   /** remainingWeeks scaled by the waking fraction. */
   remainingWakingWeeks: number;
   wakingHoursPerDay: number;
@@ -103,6 +105,11 @@ export function computeLifeSpan(inputs: LifeInputs, now: number): LifeSpan {
   const livedWeeks = Math.min(totalWeeks, Math.max(0, livedWeeksRaw));
   const remainingWeeks = Math.max(0, totalWeeks - livedWeeks);
   const remainingDays = Math.max(0, Math.floor((death - now) / MS_PER_DAY));
+  const totalDays = Math.max(1, Math.round((death - inputs.birthMs) / MS_PER_DAY));
+  const livedDays = Math.min(
+    totalDays,
+    Math.max(0, Math.floor((now - inputs.birthMs) / MS_PER_DAY)),
+  );
   const onBonusTime = now >= death;
 
   return {
@@ -110,6 +117,8 @@ export function computeLifeSpan(inputs: LifeInputs, now: number): LifeSpan {
     livedWeeks,
     remainingWeeks,
     remainingDays,
+    livedDays,
+    totalDays,
     remainingWakingWeeks: remainingWeeks * (wakingHoursPerDay / 24),
     wakingHoursPerDay,
     currentWeekNumber: Math.min(totalWeeks, livedWeeks + 1),
@@ -207,6 +216,43 @@ export function formatHoursPerDay(hours: number): string {
   if (m === 0) return `${h}h`;
   if (h === 0) return `${m}m`;
   return `${h}h ${m}m`;
+}
+
+export interface Countdown {
+  past: boolean;
+  daysUntil: number;
+  /** Grid boxes between the current week and the event week. */
+  boxesUntil: number;
+  /** Share of the user's remaining weeks, 0-100. */
+  percentOfRemainingWeeks: number;
+  /** Grid index where the highlight band starts (the current week). */
+  startWeek: number;
+  /** True when the event lands beyond the user's life expectancy grid. */
+  beyondGrid: boolean;
+}
+
+/** Countdown from now to a target date, expressed in life-grid terms. */
+export function computeCountdown(
+  targetMs: number,
+  birthMs: number,
+  span: LifeSpan,
+  now: number,
+): Countdown {
+  const past = targetMs <= now;
+  const daysUntil = past ? 0 : Math.ceil((targetMs - now) / MS_PER_DAY);
+  const eventWeekIdx = Math.floor((targetMs - birthMs) / MS_PER_WEEK);
+  const beyondGrid = eventWeekIdx >= span.totalWeeks;
+  const clampedEventWeek = Math.min(span.totalWeeks, Math.max(0, eventWeekIdx));
+  const boxesUntil = past ? 0 : Math.max(0, clampedEventWeek - span.livedWeeks);
+  return {
+    past,
+    daysUntil,
+    boxesUntil,
+    percentOfRemainingWeeks:
+      span.remainingWeeks > 0 ? (boxesUntil / span.remainingWeeks) * 100 : 0,
+    startWeek: span.livedWeeks,
+    beyondGrid,
+  };
 }
 
 /** Parse a YYYY-MM-DD date-input value to local-midnight ms, or null. */

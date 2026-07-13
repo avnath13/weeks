@@ -10,15 +10,20 @@ its design system (tokens, Sora/Inter, motion, event palette).
 
 ## Features
 
-Four tools, tabbed (hash-linkable: `#life`, `#habits`, `#lifetime`, `#share`):
+Five tools, tabbed (hash-linkable: `#life`, `#habits`, `#lifetime`,
+`#countdown`, `#share`):
 
-- **Your life** - inputs plus the full grid, ticker, and progress bar.
+- **Your life** - inputs plus the full grid, ticker, progress bar, and
+  stat tiles (months / weeks / days / percent, with a lived-vs-left toggle).
 - **Habits** - the converter. Desktop: controls on the left, a sticky live
   grid on the right so slider changes show their impact instantly. Mobile:
   the grid stacks directly under the picker.
 - **Lifetime** - retrospective calculator (inspired by lifeecalendar.com):
   years already spent sleeping, working, on your phone, and so on, plus the
   projected years to come, each editable.
+- **Countdown** - name a date and see the boxes between here and there
+  highlighted on your grid, plus "time left today" rings and its own share
+  card.
 - **Share** - the card generator.
 
 Details:

@@ -6,6 +6,7 @@ import {
   habitSegments,
   gridPixelHeight,
   cssVarHsl,
+  type GridSegment,
 } from "@/lib/gridDraw";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import type { Theme } from "@/hooks/useTheme";
@@ -15,6 +16,8 @@ interface LifeGridProps {
   habits: SelectedHabit[];
   reclaimMode: boolean;
   theme: Theme;
+  /** Extra bands drawn on top of habit segments (e.g. countdown highlight). */
+  extraSegments?: GridSegment[];
 }
 
 /**
@@ -22,7 +25,13 @@ interface LifeGridProps {
  * DOM nodes on mobile), animated fill on data changes, DPR-aware, and
  * re-drawn on resize and theme change.
  */
-export function LifeGrid({ span, habits, reclaimMode, theme }: LifeGridProps) {
+export function LifeGrid({
+  span,
+  habits,
+  reclaimMode,
+  theme,
+  extraSegments,
+}: LifeGridProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<number>(0);
@@ -37,9 +46,10 @@ export function LifeGrid({ span, habits, reclaimMode, theme }: LifeGridProps) {
         l: span.livedWeeks,
         h: habits.map((h) => [h.id, h.hoursPerDay, h.reclaimHours]),
         r: reclaimMode,
+        x: extraSegments?.map((s) => [s.startWeek, s.count, s.color]),
         theme,
       }),
-    [span, habits, reclaimMode, theme],
+    [span, habits, reclaimMode, extraSegments, theme],
   );
 
   useEffect(() => {
@@ -64,7 +74,7 @@ export function LifeGrid({ span, habits, reclaimMode, theme }: LifeGridProps) {
       drawLifeGrid(
         ctx,
         span,
-        habitSegments(span, habits, reclaimMode),
+        [...habitSegments(span, habits, reclaimMode), ...(extraSegments ?? [])],
         {
           lived: cssVarHsl("--foreground", 0.75),
           remaining: cssVarHsl("--foreground", 0.1),
