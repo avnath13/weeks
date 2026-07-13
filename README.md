@@ -1,62 +1,62 @@
-# Weeks - your life in boxes
+# Weeks
 
-Your life is ~4,000 weeks. This app shows where the rest of them are going:
-pick your habits (or upload your iOS/Android Screen Time screenshot), and see
-them converted into **weeks · months · years of your remaining waking life**,
-painted onto a life grid - one box per week.
+**See what your habits cost in weeks, months, and years of the life you have left.**
 
-Sibling app to [bigpicture](https://github.com/avnath13/bigpicture); shares
+Your life is ~4,000 weeks. Weeks draws them as a grid, one box per week, then
+converts your daily habits into the boxes they consume. 2.5 hours of Instagram
+a day is not a number; it is 4.4 years of your remaining waking life, erased
+from the end of the grid.
+
+Sibling app to [bigpicture](https://github.com/avnath13/bigpicture), sharing
 its design system (tokens, Sora/Inter, motion, event palette).
+
+![Habits view](docs/screenshots/habits-dark.png)
 
 ## Features
 
-Five tools, tabbed (hash-linkable: `#life`, `#habits`, `#lifetime`,
-`#countdown`, `#share`):
+- **Life grid.** Canvas-rendered, 4,000+ cells, animated fill. Lived weeks,
+  remaining weeks, and habit costs painted from the end of life backwards.
+  Leap years counted exactly.
+- **Habits converter.** Tap preset chips (Scrolling, Instagram, Commute,
+  Meetings) or add your own; drag sliders and watch the grid react beside the
+  controls. Everything is denominated in your waking hours (24h minus your
+  sleep).
+- **Screen Time import.** Drop an iOS Screen Time or Android Digital
+  Wellbeing screenshot; it is OCR'd entirely on-device (Tesseract.js) into
+  per-app hours. Nothing is uploaded, ever.
+- **Reclaim mode.** Drag a habit down and watch the weeks return as an
+  emerald band.
+- **Lifetime.** The retrospective view: years already spent sleeping,
+  working, and scrolling, next to what is still to come.
+- **Countdown.** Name a date and see the weeks between here and there
+  highlighted on your grid, with "time left today" rings.
+- **Share cards.** Deterministic canvas renders, 1080×1920 story and
+  1200×630 OG, in the app's editorial style.
+- Light/dark themes, mobile-first, localStorage only, no accounts, no
+  backend. A Settings tab resets everything.
 
-- **Your life** - inputs plus the full grid, ticker, progress bar, and
-  stat tiles (months / weeks / days / percent, with a lived-vs-left toggle).
-- **Habits** - the converter. Desktop: controls on the left, a sticky live
-  grid on the right so slider changes show their impact instantly. Mobile:
-  the grid stacks directly under the picker.
-- **Lifetime** - retrospective calculator (inspired by lifeecalendar.com):
-  years already spent sleeping, working, on your phone, and so on, plus the
-  projected years to come, each editable.
-- **Countdown** - name a date and see the boxes between here and there
-  highlighted on your grid, plus "time left today" rings and its own share
-  card.
-- **Share** - the card generator.
+<table>
+  <tr>
+    <td><img src="docs/screenshots/overview-dark.png" alt="Overview, dark" /></td>
+    <td><img src="docs/screenshots/overview-light.png" alt="Overview, light" /></td>
+  </tr>
+</table>
 
-Details:
-
-- **Life grid** - canvas-rendered (4,000+ cells), animated fill, one box per
-  week, habit costs painted from the end of life backwards. Leap years are
-  counted exactly (calendar-year death date, Feb 29 birthdays clamped).
-- **Waking-time math** - all conversions are denominated in waking hours
-  (24h − your sleep, default 8h). Unit ladder: weeks · months · years · % of
-  remaining waking life, plus rotating lived-experience equivalences.
-- **Screen Time OCR** - drop a Screen Time / Digital Wellbeing screenshot;
-  parsed 100% on-device with Tesseract.js (never uploaded). Handles weekly vs
-  daily views, garbled OCR names, dark-mode screenshots; always falls back to
-  manual entry.
-- **Reclaim mode** - drag a habit down, watch the weeks come back (emerald
-  band on the grid).
-- **Share cards** - deterministic canvas rendering: 1080×1920 story +
-  1200×630 OG, native share sheet with download fallback.
-- Light/dark themes, mobile-first responsive, localStorage persistence,
-  `prefers-reduced-motion` respected, no backend, no accounts.
+![Countdown view](docs/screenshots/countdown-dark.png)
 
 ## Develop
 
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # vitest (time math + OCR parser)
+npm test         # vitest: time math + Screen Time parser (50 tests)
 npm run build    # typecheck + production bundle
 ```
 
-## Edge cases handled
+Screenshots regenerate with `node scripts/screenshots.mjs` while the dev
+server is running.
 
-Future/invalid/120+ birth dates; outliving your set life expectancy ("bonus
-time"); habit hours capped at the waking day; corrupt localStorage; OCR
-failures (bad file, unreadable, no apps found, engine load, 30s timeout) all
-soft-fall-back to manual entry; leap years via ms math; theme-reactive canvas.
+## Privacy
+
+Birth date, habits, and screenshots never leave the browser. There is no
+server, no analytics, and no account. The Settings tab wipes all local data.
