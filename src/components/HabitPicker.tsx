@@ -27,6 +27,7 @@ export function HabitPicker({
   onDeleteChip,
 }: HabitPickerProps) {
   const [customName, setCustomName] = useState("");
+  const [customHours, setCustomHours] = useState(1);
   const [showCustom, setShowCustom] = useState(false);
   const [capWarning, setCapWarning] = useState<string | null>(null);
 
@@ -90,7 +91,12 @@ export function HabitPicker({
         return prev;
       const colorVar =
         CUSTOM_COLOR_VARS[prev.length % CUSTOM_COLOR_VARS.length];
-      const { hours } = capHabitHours(1, totalHours(prev), span.wakingHoursPerDay);
+      const requested = Math.min(12, Math.max(0.25, customHours || 1));
+      const { hours } = capHabitHours(
+        requested,
+        totalHours(prev),
+        span.wakingHoursPerDay,
+      );
       if (hours <= 0) {
         setCapWarning("No waking hours left. Reduce another habit first.");
         return prev;
@@ -108,6 +114,7 @@ export function HabitPicker({
       ];
     });
     setCustomName("");
+    setCustomHours(1);
     setShowCustom(false);
   };
 
@@ -176,15 +183,29 @@ export function HabitPicker({
       </div>
 
       {showCustom && (
-        <div className="mt-3 flex max-w-xs gap-2 animate-scale-in">
+        <div className="mt-3 flex max-w-md flex-wrap items-center gap-2 animate-scale-in">
           <input
             value={customName}
             onChange={(e) => setCustomName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addCustom()}
             placeholder="Name it (e.g. News)"
             maxLength={24}
-            className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-sm outline-none ring-primary/50 focus:ring-2"
+            className="w-40 flex-1 rounded-lg border border-input bg-card px-3 py-1.5 text-sm outline-none ring-primary/50 focus:ring-2"
           />
+          <label className="flex items-center gap-1.5 font-mono text-xs tabular-nums">
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0.25}
+              max={12}
+              step={0.25}
+              value={customHours}
+              onChange={(e) => setCustomHours(Number(e.target.value))}
+              aria-label="Hours per day for the new habit"
+              className="w-16 rounded-lg border border-input bg-card px-2 py-1.5 text-right text-sm outline-none ring-primary/50 focus:ring-2"
+            />
+            <span className="text-muted-foreground">h/day</span>
+          </label>
           <button
             type="button"
             onClick={addCustom}

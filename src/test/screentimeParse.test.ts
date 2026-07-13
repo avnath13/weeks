@@ -148,9 +148,64 @@ describe("parseScreenTimeText - OCR noise", () => {
 });
 
 describe("toHoursPerDay", () => {
-  it("divides weekly totals by 7 and rounds to quarter hours", () => {
+  it("divides weekly totals by 7 at 5-minute granularity", () => {
     expect(toHoursPerDay(14, "week")).toBe(2);
-    expect(toHoursPerDay(14.5, "week")).toBe(2);
-    expect(toHoursPerDay(2.6, "day")).toBe(2.5);
+    expect(toHoursPerDay(14.5, "week")).toBeCloseTo(2 + 5 / 60, 5);
+    expect(toHoursPerDay(2.6, "day")).toBeCloseTo(2.5833, 3);
+  });
+
+  it("floors small nonzero values at 5 minutes instead of 0", () => {
+    // 32 minutes over a week ≈ 4.6 min/day; must not collapse to 0h/day.
+    expect(toHoursPerDay(32 / 60, "week")).toBeCloseTo(1 / 12, 5);
+    expect(toHoursPerDay(0, "week")).toBe(0);
+  });
+});
+
+describe("parseScreenTimeText - iOS rows with category subtitles", () => {
+  const WITH_CATEGORIES = `
+MOST USED
+Instagram
+Social
+14h 32m
+YouTube
+Entertainment
+8h 5m
+Slack
+Productivity & Finance
+3h 40m
+Duolingo
+Education
+1h 12m
+Safari
+Information & Reading
+55m
+`;
+
+  it("pairs durations with the app name two lines up, skipping the category", () => {
+    const result = parseScreenTimeText(WITH_CATEGORIES);
+    expect(result.apps).toHaveLength(5);
+    expect(result.apps.find((a) => a.appId === "instagram")?.hoursInPeriod).toBeCloseTo(
+      14 + 32 / 60,
+      3,
+    );
+    expect(result.apps.find((a) => a.appId === "youtube")).toBeTruthy();
+    expect(result.apps.find((a) => a.appId === "slack")).toBeTruthy();
+    expect(result.apps.find((a) => a.label === "Duolingo")).toBeTruthy();
+    expect(result.apps.find((a) => a.appId === "safari")).toBeTruthy();
+  });
+
+  it("never emits a category as an app name", () => {
+    const result = parseScreenTimeText(WITH_CATEGORIES);
+    expect(
+      result.apps.some((a) => /social|entertainment|education|productivity/i.test(a.label)),
+    ).toBe(false);
+  });
+});
+
+describe("parseScreenTimeText - OCR digit/unit confusions", () => {
+  it("reads l4h as 14h and rn as m", () => {
+    const result = parseScreenTimeText("Instagram\nl4h 32rn");
+    expect(result.apps).toHaveLength(1);
+    expect(result.apps[0].hoursInPeriod).toBeCloseTo(14 + 32 / 60, 3);
   });
 });

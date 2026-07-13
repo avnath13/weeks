@@ -30,9 +30,9 @@ export function validateImageFile(file: File): OcrFailure | null {
 }
 
 /**
- * Downscale + grayscale + contrast-boost the image before OCR. Screen Time
- * screenshots are high-contrast UI text; thresholding materially improves
- * Tesseract accuracy, especially for dark mode.
+ * Normalize the image for OCR: upscale small screenshots (Tesseract wants
+ * tall glyphs), grayscale, invert dark mode, then stretch contrast so the
+ * light-gray duration text ("14h 32m") separates cleanly from the background.
  */
 async function preprocess(file: File): Promise<HTMLCanvasElement> {
   const url = URL.createObjectURL(file);
@@ -44,29 +44,63 @@ async function preprocess(file: File): Promise<HTMLCanvasElement> {
       el.src = url;
     });
 
-    const targetWidth = Math.min(1400, img.naturalWidth || 1400);
-    const scale = targetWidth / (img.naturalWidth || targetWidth);
+    const natural = img.naturalWidth || 1400;
+    // Upscale to ~2000px wide for phone screenshots; never downscale below
+    // native, never blow up beyond 2.5x (blurry upscales hurt more than help).
+    const targetWidth = Math.round(
+      Math.min(Math.max(natural, 2000), natural * 2.5),
+    );
+    const scale = targetWidth / natural;
     const canvas = document.createElement("canvas");
     canvas.width = targetWidth;
     canvas.height = Math.round((img.naturalHeight || 1) * scale);
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) throw new OcrError("unreadable");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const px = data.data;
-    // Grayscale, then invert if the image is predominantly dark (dark mode).
+
+    // Grayscale + luminance histogram.
+    const hist = new Uint32Array(256);
     let sum = 0;
     for (let i = 0; i < px.length; i += 4) {
-      const gray = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+      const gray = Math.round(
+        0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2],
+      );
       px[i] = px[i + 1] = px[i + 2] = gray;
+      hist[gray]++;
       sum += gray;
     }
-    const mean = sum / (px.length / 4);
-    if (mean < 110) {
-      for (let i = 0; i < px.length; i += 4) {
-        px[i] = px[i + 1] = px[i + 2] = 255 - px[i];
+    const total = px.length / 4;
+    const invert = sum / total < 110; // dark mode
+
+    // Contrast stretch between the 2nd and 98th percentile.
+    let lo = 0;
+    let hi = 255;
+    let acc = 0;
+    for (let v = 0; v < 256; v++) {
+      acc += hist[v];
+      if (acc >= total * 0.02) {
+        lo = v;
+        break;
       }
+    }
+    acc = 0;
+    for (let v = 255; v >= 0; v--) {
+      acc += hist[v];
+      if (acc >= total * 0.02) {
+        hi = v;
+        break;
+      }
+    }
+    const range = Math.max(1, hi - lo);
+    for (let i = 0; i < px.length; i += 4) {
+      let v = Math.min(255, Math.max(0, ((px[i] - lo) / range) * 255));
+      if (invert) v = 255 - v;
+      px[i] = px[i + 1] = px[i + 2] = v;
     }
     ctx.putImageData(data, 0, 0);
     return canvas;
@@ -99,14 +133,29 @@ export async function recognizeScreenTime(file: File): Promise<ParseResult> {
 
   let text: string;
   try {
-    const result = await Promise.race([
-      TesseractModule.recognize(canvas, "eng"),
-      timeout,
-    ]);
-    text = result.data.text ?? "";
+    const run = (async () => {
+      const worker = await TesseractModule.createWorker("eng");
+      try {
+        // Screen Time screenshots are a single column of variable-size text;
+        // PSM 4 reads list rows far more reliably than full auto layout.
+        await worker.setParameters({
+          tessedit_pageseg_mode: "4" as never,
+          preserve_interword_spaces: "1",
+        });
+        const result = await worker.recognize(canvas);
+        return result.data.text ?? "";
+      } finally {
+        void worker.terminate();
+      }
+    })();
+    text = await Promise.race([run, timeout]);
   } catch (e) {
     throw e instanceof OcrError ? e : new OcrError("unreadable");
   }
+
+  // Keep the raw OCR text inspectable: real-device failures are impossible
+  // to diagnose without it, and it never leaves the browser.
+  console.debug("[weeks] screen time OCR text:\n", text);
 
   const parsed = parseScreenTimeText(text);
   if (parsed.apps.length === 0) throw new OcrError("no-apps-found");

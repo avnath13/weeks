@@ -59,6 +59,14 @@ const NOISE_PATTERNS =
   /screen time|see all|most used|show (categories|apps)|daily average|updated today|last week|this week|today|yesterday|limits|downtime|app & website activity|activity|categories|week total|avg|average|notifications|pickups|first used|settings|digital wellbeing|dashboard|unlocks/i;
 
 /**
+ * iOS "Most Used" rows often carry a category subtitle between the app name
+ * and its duration ("Instagram" / "Social" / "14h 32m"). These must never be
+ * mistaken for app names when pairing a duration with the lines above it.
+ */
+const CATEGORY_PATTERNS =
+  /^(social( networking)?|entertainment|productivity( & finance)?|games|utilities|creativity|education|information & reading|reading( & reference)?|shopping( & food)?|travel|health & fitness|lifestyle|finance|business|music|photo & video|news|sports|weather|developer tools|graphics & design|medical|navigation|reference|food & drink|other)$/i;
+
+/**
  * Duration formats seen in Screen Time / Digital Wellbeing:
  *   "2h 15m" · "2 h 15 m" · "2hr 15min" · "2 hr, 15 min" · "45m" · "1h"
  * OCR often reads "1h" as "1n" or "lh"; we accept h/hr/hrs/hour(s), and a
@@ -110,7 +118,22 @@ function matchApp(rawName: string): DictEntry | null {
   return null;
 }
 
-function parseDuration(text: string): number | null {
+/**
+ * OCR habitually misreads digits/units in the small gray duration text:
+ * "l4h" for "14h", "I h" for "1h", "O" for "0", "32rn" for "32m". Clean the
+ * common confusions before matching, in duration-looking contexts only.
+ */
+function cleanDurationNoise(text: string): string {
+  return text
+    .replace(/[lI](?=\d)/g, "1")
+    .replace(/(?<=\d)[lI](?=\s*[hm])/gi, "1")
+    .replace(/\bO(?=\d)/g, "0")
+    .replace(/(?<=\d)\s*rn\b/gi, "m")
+    .replace(/(?<=\d)\s*hn\b/gi, "h");
+}
+
+function parseDuration(raw: string): number | null {
+  const text = cleanDurationNoise(raw);
   const m = DURATION_RE.exec(text);
   if (!m) return null;
   if (m[3] !== undefined) {
@@ -166,16 +189,26 @@ export function parseScreenTimeText(text: string): ParseResult {
     const duration = parseDuration(line);
     if (duration === null) continue;
 
-    let nameText = line.replace(DURATION_RE, " ").trim();
+    let nameText = cleanDurationNoise(line).replace(DURATION_RE, " ").trim();
     let rawLine = line;
     if (!nameText || !/\p{L}{2}/u.test(nameText)) {
-      // Duration-only line → the app name is probably the previous line.
-      const prev = idx > 0 ? lines[idx - 1] : "";
-      if (!prev || parseDuration(prev) !== null) continue;
-      nameText = prev;
-      rawLine = `${prev} ${line}`;
+      // Duration-only line → walk up to two lines back for the app name,
+      // skipping a category subtitle ("Instagram" / "Social" / "14h 32m").
+      let found: string | null = null;
+      for (let back = 1; back <= 2 && idx - back >= 0; back++) {
+        const candidate = lines[idx - back];
+        if (parseDuration(candidate) !== null) break; // ran into another row
+        if (CATEGORY_PATTERNS.test(candidate.trim())) continue;
+        if (NOISE_PATTERNS.test(candidate)) break;
+        found = candidate;
+        break;
+      }
+      if (!found) continue;
+      nameText = found;
+      rawLine = `${found} ${line}`;
     }
-    if (NOISE_PATTERNS.test(nameText)) continue;
+    if (NOISE_PATTERNS.test(nameText) || CATEGORY_PATTERNS.test(nameText.trim()))
+      continue;
 
     const dict = matchApp(nameText);
     const label = dict?.label ?? cleanLabel(nameText);
@@ -212,8 +245,13 @@ function cleanLabel(raw: string): string | null {
   return cleaned;
 }
 
-/** Convert a parsed entry to hours/day given the chosen period. */
+/**
+ * Convert a parsed entry to hours/day given the chosen period.
+ * 5-minute granularity, with a 5-minute floor for any nonzero value so a
+ * real-but-small duration never displays (or applies) as 0h/day.
+ */
 export function toHoursPerDay(hoursInPeriod: number, period: Period): number {
   const perDay = period === "week" ? hoursInPeriod / 7 : hoursInPeriod;
-  return Math.round(perDay * 4) / 4; // quarter-hour granularity
+  if (perDay <= 0) return 0;
+  return Math.max(1 / 12, Math.round(perDay * 12) / 12);
 }

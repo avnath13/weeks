@@ -1,20 +1,28 @@
 import { useCallback, useRef, useState } from "react";
-import { Camera, Loader2, ShieldCheck, Upload } from "lucide-react";
+import { Camera, Loader2, Plus, ShieldCheck, Upload } from "lucide-react";
 import { OcrError, OCR_ERROR_COPY, recognizeScreenTime } from "@/lib/ocr";
-import {
-  toHoursPerDay,
-  type ParseResult,
-  type Period,
-} from "@/lib/screentimeParse";
+import { toHoursPerDay, type Period } from "@/lib/screentimeParse";
 import { CUSTOM_COLOR_VARS, type SelectedHabit } from "@/lib/habits";
 import { capHabitHours, formatHoursPerDay, type LifeSpan } from "@/lib/timeMath";
 import { totalHours } from "@/lib/habits";
 import { cn } from "@/lib/utils";
 
+/** One row in the confirm card: parsed from OCR, or added by hand. */
+interface EditableRow {
+  appId: string | null;
+  label: string;
+  emoji: string;
+  /** Duration as parsed, in the screenshot's period. Null for manual rows. */
+  hoursInPeriod: number | null;
+  /** User-edited hours/day. Takes precedence over the parsed value. */
+  override: number | null;
+  checked: boolean;
+}
+
 type Stage =
   | { kind: "idle" }
   | { kind: "reading" }
-  | { kind: "confirm"; result: ParseResult; period: Period; checked: Set<number> }
+  | { kind: "confirm"; rows: EditableRow[]; period: Period; periodConfident: boolean }
   | { kind: "error"; message: string };
 
 interface ScreenshotImportProps {
@@ -25,7 +33,6 @@ interface ScreenshotImportProps {
 /** Map a parsed app onto an existing preset id where possible. */
 const PARSED_TO_PRESET: Record<string, string> = {
   instagram: "instagram",
-  tiktok: "tiktok",
 };
 
 const PARSED_COLOR: Record<string, string> = {
@@ -37,9 +44,63 @@ const PARSED_COLOR: Record<string, string> = {
   netflix: "--event-amber",
 };
 
+function rowHoursPerDay(row: EditableRow, period: Period): number {
+  if (row.override !== null) return row.override;
+  if (row.hoursInPeriod === null) return 0;
+  return toHoursPerDay(row.hoursInPeriod, period);
+}
+
+/** Small paired hours/minutes editor for a row's per-day value. */
+function HmInput({
+  value,
+  onChange,
+  label,
+}: {
+  value: number;
+  onChange: (hoursPerDay: number) => void;
+  label: string;
+}) {
+  const h = Math.floor(value);
+  const m = Math.round((value - h) * 60);
+  const commit = (nh: number, nm: number) => {
+    const safeH = Math.min(24, Math.max(0, Math.floor(nh) || 0));
+    const safeM = Math.min(59, Math.max(0, Math.floor(nm) || 0));
+    onChange(safeH + safeM / 60);
+  };
+  return (
+    <span className="flex items-center gap-1 font-mono text-xs tabular-nums">
+      <input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={24}
+        value={h}
+        aria-label={`${label} hours per day`}
+        onChange={(e) => commit(Number(e.target.value), m)}
+        className="w-11 rounded-md border border-input bg-background px-1.5 py-1 text-right outline-none focus:border-primary"
+      />
+      <span className="text-muted-foreground">h</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={59}
+        step={5}
+        value={m}
+        aria-label={`${label} minutes per day`}
+        onChange={(e) => commit(h, Number(e.target.value))}
+        className="w-11 rounded-md border border-input bg-background px-1.5 py-1 text-right outline-none focus:border-primary"
+      />
+      <span className="text-muted-foreground">m/day</span>
+    </span>
+  );
+}
+
 export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [dragOver, setDragOver] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addHours, setAddHours] = useState(1);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback(async (file: File | undefined | null) => {
@@ -49,9 +110,16 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
       const result = await recognizeScreenTime(file);
       setStage({
         kind: "confirm",
-        result,
         period: result.guessedPeriod,
-        checked: new Set(result.apps.map((_, i) => i)),
+        periodConfident: result.periodConfident,
+        rows: result.apps.map((app) => ({
+          appId: app.appId,
+          label: app.label,
+          emoji: app.emoji,
+          hoursInPeriod: app.hoursInPeriod,
+          override: null,
+          checked: true,
+        })),
       });
     } catch (e) {
       const reason = e instanceof OcrError ? e.reason : "unreadable";
@@ -59,35 +127,67 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
     }
   }, []);
 
+  const updateRow = (index: number, patch: Partial<EditableRow>) => {
+    setStage((s) =>
+      s.kind === "confirm"
+        ? {
+            ...s,
+            rows: s.rows.map((r, i) => (i === index ? { ...r, ...patch } : r)),
+          }
+        : s,
+    );
+  };
+
+  const addManualRow = () => {
+    const name = addName.trim().slice(0, 24);
+    if (name.length < 2 || stage.kind !== "confirm") return;
+    if (stage.rows.some((r) => r.label.toLowerCase() === name.toLowerCase()))
+      return;
+    setStage({
+      ...stage,
+      rows: [
+        ...stage.rows,
+        {
+          appId: null,
+          label: name,
+          emoji: "📲",
+          hoursInPeriod: null,
+          override: Math.max(1 / 12, addHours),
+          checked: true,
+        },
+      ],
+    });
+    setAddName("");
+    setAddHours(1);
+  };
+
   const applyConfirmed = () => {
     if (stage.kind !== "confirm") return;
-    const { result, period, checked } = stage;
+    const { rows, period } = stage;
     setHabits((prev) => {
-      let next = [...prev];
+      const next = [...prev];
       let colorCursor = 0;
-      for (const [i, app] of result.apps.entries()) {
-        if (!checked.has(i)) continue;
-        const hoursPerDay = toHoursPerDay(app.hoursInPeriod, period);
+      for (const row of rows) {
+        if (!row.checked) continue;
+        const hoursPerDay = rowHoursPerDay(row, period);
         if (hoursPerDay <= 0) continue;
 
         const id =
-          (app.appId && PARSED_TO_PRESET[app.appId]) ??
-          `app-${(app.appId ?? app.label).toLowerCase().replace(/\s+/g, "-")}`;
+          (row.appId && PARSED_TO_PRESET[row.appId]) ??
+          `app-${(row.appId ?? row.label).toLowerCase().replace(/\s+/g, "-")}`;
         const colorVar =
-          (app.appId && PARSED_COLOR[app.appId]) ??
+          (row.appId && PARSED_COLOR[row.appId]) ??
           CUSTOM_COLOR_VARS[colorCursor++ % CUSTOM_COLOR_VARS.length];
 
         const existingIdx = next.findIndex((h) => h.id === id);
-        const others = totalHours(
-          next.filter((_, idx) => idx !== existingIdx),
-        );
+        const others = totalHours(next.filter((_, idx) => idx !== existingIdx));
         const { hours } = capHabitHours(hoursPerDay, others, span.wakingHoursPerDay);
         if (hours <= 0) continue;
 
         const habit: SelectedHabit = {
           id,
-          label: app.label,
-          emoji: app.emoji,
+          label: row.label,
+          emoji: row.emoji,
           colorVar,
           hoursPerDay: hours,
           reclaimHours: hours,
@@ -186,43 +286,73 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
 
           {stage.kind === "confirm" && (
             <div className="mt-3 animate-scale-in space-y-3" data-testid="ocr-confirm">
-              <p className="text-sm font-medium">Found in your screenshot:</p>
+              <p className="text-sm font-medium">
+                Found in your screenshot. Fix anything we misread:
+              </p>
               <div className="space-y-1.5">
-                {stage.result.apps.map((app, i) => (
-                  <label
+                {stage.rows.map((row, i) => (
+                  <div
                     key={i}
-                    className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                    className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                    data-testid={`ocr-row-${i}`}
                   >
-                    <span className="flex items-center gap-2">
+                    <label className="flex min-w-0 cursor-pointer items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={stage.checked.has(i)}
-                        onChange={(e) => {
-                          const next = new Set(stage.checked);
-                          if (e.target.checked) next.add(i);
-                          else next.delete(i);
-                          setStage({ ...stage, checked: next });
-                        }}
+                        checked={row.checked}
+                        onChange={(e) => updateRow(i, { checked: e.target.checked })}
                         className="accent-primary"
                       />
-                      {app.emoji} {app.label}
-                    </span>
-                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                      {formatHoursPerDay(toHoursPerDay(app.hoursInPeriod, stage.period))}
-                      /day
-                    </span>
-                  </label>
+                      <span className="truncate">
+                        {row.emoji} {row.label}
+                      </span>
+                    </label>
+                    <HmInput
+                      label={row.label}
+                      value={rowHoursPerDay(row, stage.period)}
+                      onChange={(v) => updateRow(i, { override: v })}
+                    />
+                  </div>
                 ))}
               </div>
 
+              <div
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2"
+                data-testid="ocr-add-row"
+              >
+                <input
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addManualRow()}
+                  placeholder="We missed one? Name it"
+                  maxLength={24}
+                  className="w-40 flex-1 rounded-md border border-input bg-background px-2 py-1 text-sm outline-none focus:border-primary"
+                />
+                <HmInput
+                  label="new app"
+                  value={addHours}
+                  onChange={setAddHours}
+                />
+                <button
+                  type="button"
+                  data-testid="ocr-add-button"
+                  onClick={addManualRow}
+                  className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-accent"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add
+                </button>
+              </div>
+
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-muted-foreground">These numbers are per:</span>
+                <span className="text-muted-foreground">Screenshot shows totals per:</span>
                 {(["day", "week"] as Period[]).map((p) => (
                   <button
                     key={p}
                     type="button"
                     data-testid={`period-${p}`}
-                    onClick={() => setStage({ ...stage, period: p })}
+                    onClick={() =>
+                      setStage((s) => (s.kind === "confirm" ? { ...s, period: p } : s))
+                    }
                     className={cn(
                       "rounded-full border px-3 py-1 font-mono font-semibold uppercase tracking-wider transition-colors",
                       stage.period === p
@@ -233,7 +363,7 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
                     {p}
                   </button>
                 ))}
-                {!stage.result.periodConfident && (
+                {!stage.periodConfident && (
                   <span className="text-muted-foreground">(our best guess)</span>
                 )}
               </div>
@@ -243,24 +373,29 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
                   type="button"
                   data-testid="ocr-apply"
                   onClick={applyConfirmed}
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm"
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                 >
-                  Looks right - use these
+                  Use these ({stage.rows.filter((r) => r.checked && rowHoursPerDay(r, stage.period) > 0).length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setStage({ kind: "idle" })}
-                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium"
+                  className="rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
                 >
                   Cancel
                 </button>
               </div>
+              <p className="text-[11px] text-muted-foreground">
+                Editing a value pins it; the day/week toggle only re-converts
+                rows you haven't touched. {formatHoursPerDay(1 / 12)} is the
+                smallest step.
+              </p>
             </div>
           )}
 
           <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-event-emerald" />
-            Parsed entirely in your browser - the image is never uploaded.
+            Parsed entirely in your browser. The image is never uploaded.
           </p>
         </div>
       </div>
