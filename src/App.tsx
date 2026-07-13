@@ -71,7 +71,7 @@ export default function App() {
           aria-label="Tools"
           data-testid="tab-bar"
         >
-          <div className="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4 py-2 no-scrollbar sm:px-6">
+          <div className="mx-auto flex max-w-5xl gap-5 overflow-x-auto px-4 no-scrollbar sm:gap-7 sm:px-6">
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -80,10 +80,10 @@ export default function App() {
                 onClick={() => goTo(id)}
                 aria-current={tab === id ? "page" : undefined}
                 className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+                  "flex shrink-0 items-center gap-1.5 border-b-2 pb-2.5 pt-3 text-sm transition-colors",
                   tab === id
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    ? "border-primary font-semibold text-foreground"
+                    : "border-transparent font-medium text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />

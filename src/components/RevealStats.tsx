@@ -54,13 +54,16 @@ export function RevealStats({ span, habits }: RevealStatsProps) {
   }
 
   return (
-    <section className="animate-fade-in-up space-y-4" data-testid="reveal-stats">
-      <div className="rounded-xl border border-border bg-card p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-          Of your {Math.round(span.remainingWakingWeeks).toLocaleString()} remaining
-          waking weeks
+    <section className="animate-fade-in-up space-y-8" data-testid="reveal-stats">
+      <div
+        className="border-l-4 pl-5 sm:pl-6"
+        style={{ borderColor: cssVarHsl(top.colorVar) }}
+      >
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          Of your {Math.round(span.remainingWakingWeeks).toLocaleString()}{" "}
+          remaining waking weeks
         </p>
-        <h2 className="mt-2 font-display text-3xl font-extrabold leading-tight sm:text-4xl">
+        <h2 className="mt-3 font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
           {top.label} takes{" "}
           <span style={{ color: cssVarHsl(top.colorVar) }}>
             {topLadder.years} years
@@ -68,7 +71,7 @@ export function RevealStats({ span, habits }: RevealStatsProps) {
           .
         </h2>
         <p
-          className="mt-2 font-mono text-sm tabular-nums text-muted-foreground"
+          className="mt-3 font-mono text-sm tabular-nums text-muted-foreground"
           data-testid="unit-ladder"
         >
           = {topLadder.weeks} weeks · {topLadder.months} months ·{" "}
@@ -91,30 +94,34 @@ export function RevealStats({ span, habits }: RevealStatsProps) {
       </div>
 
       {habits.length > 1 && (
-        <div className="rounded-xl border border-border bg-card p-5">
-          <p className="text-sm text-muted-foreground">All habits combined</p>
-          <p className="mt-1 font-mono text-lg font-bold tabular-nums" data-testid="combined-ladder">
-            {combinedLadder.weeks} wks · {combinedLadder.months} mo ·{" "}
-            {combinedLadder.years} yrs
-            <span className="ml-2 text-sm font-medium text-muted-foreground">
-              ({combinedLadder.percent}% of waking life)
-            </span>
-          </p>
-          <div className="mt-3 space-y-1.5">
+        <div>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border pb-2">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              All habits combined
+            </p>
+            <p className="font-mono text-sm font-bold tabular-nums" data-testid="combined-ladder">
+              {combinedLadder.weeks} wks · {combinedLadder.months} mo ·{" "}
+              {combinedLadder.years} yrs
+              <span className="ml-1.5 font-medium text-muted-foreground">
+                ({combinedLadder.percent}%)
+              </span>
+            </p>
+          </div>
+          <div>
             {sorted.map((h) => {
               const ladder = formatLadder(habitCost(h.hoursPerDay, span));
               return (
                 <div
                   key={h.id}
-                  className="flex items-center justify-between text-sm"
+                  className="flex items-center justify-between border-b border-border py-2.5 text-sm"
                 >
                   <span className="flex items-center gap-2">
                     <span
-                      className="inline-block h-2.5 w-2.5 rounded-sm"
+                      className="inline-block h-2.5 w-2.5 rounded-[3px]"
                       style={{ backgroundColor: cssVarHsl(h.colorVar) }}
                     />
                     {h.label}
-                    <span className="text-xs text-muted-foreground">
+                    <span className="font-mono text-xs text-muted-foreground">
                       {formatHoursPerDay(h.hoursPerDay)}/day
                     </span>
                   </span>

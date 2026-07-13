@@ -103,6 +103,15 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-image: radial-gradient(
+      hsl(var(--foreground) / 0.05) 1px,
+      transparent 1px
+    );
+    background-size: 26px 26px;
+  }
+
+  ::selection {
+    @apply bg-primary/25;
   }
 }
 
@@ -137,6 +146,35 @@
 
   .event-bar:hover {
     @apply ring-2 ring-foreground/30 -translate-y-px shadow-md z-20;
+  }
+
+  /* Editorial range slider: hairline track, solid thumb tinted per habit
+     via the --range-color custom property. */
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    @apply h-1 w-full cursor-pointer rounded-full bg-muted;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 9999px;
+    background: var(--range-color, hsl(var(--primary)));
+    border: 2.5px solid hsl(var(--background));
+    box-shadow: 0 1px 3px hsl(222 47% 7% / 0.35);
+  }
+  .slider::-moz-range-thumb {
+    height: 16px;
+    width: 16px;
+    border-radius: 9999px;
+    background: var(--range-color, hsl(var(--primary)));
+    border: 2.5px solid hsl(var(--background));
+    box-shadow: 0 1px 3px hsl(222 47% 7% / 0.35);
+  }
+  .slider:focus-visible {
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
   }
 }
 

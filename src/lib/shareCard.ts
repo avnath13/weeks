@@ -221,7 +221,7 @@ export async function renderCountdownCard(
 
   ctx.fillStyle = fg;
   ctx.font = '700 72px "Sora", system-ui, sans-serif';
-  const title = `${data.countdown.boxesUntil.toLocaleString()} boxes until ${data.label}.`;
+  const title = `${data.countdown.boxesUntil.toLocaleString()} weeks until ${data.label}.`;
   let y = pad + 180;
   for (const line of wrapText(ctx, title, w - pad * 2)) {
     ctx.fillText(line, pad, y);

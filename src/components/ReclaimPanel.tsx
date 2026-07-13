@@ -114,7 +114,8 @@ export function ReclaimPanel({
                     ),
                   )
                 }
-                className="mt-1.5 w-full accent-event-emerald"
+                className="slider mt-2"
+                style={{ "--range-color": cssVarHsl("--event-emerald") } as React.CSSProperties}
               />
             </div>
           ))}

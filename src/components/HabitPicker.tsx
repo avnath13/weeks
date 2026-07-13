@@ -38,11 +38,11 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
       );
       if (capped)
         setCapWarning(
-          `${preset.label} was capped at ${formatHoursPerDay(hours)} - your habits can't exceed your ${span.wakingHoursPerDay} waking hours.`,
+          `${preset.label} was capped at ${formatHoursPerDay(hours)}. Your habits can't exceed your ${span.wakingHoursPerDay} waking hours.`,
         );
       if (hours <= 0) {
         setCapWarning(
-          `No waking hours left for ${preset.label} - reduce another habit first.`,
+          `No waking hours left for ${preset.label}. Reduce another habit first.`,
         );
         return prev;
       }
@@ -63,7 +63,7 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
         );
         if (capped)
           setCapWarning(
-            `Capped at ${formatHoursPerDay(hours)} - your habits can't exceed your ${span.wakingHoursPerDay} waking hours.`,
+            `Capped at ${formatHoursPerDay(hours)}. Your habits can't exceed your ${span.wakingHoursPerDay} waking hours.`,
           );
         return {
           ...h,
@@ -84,7 +84,7 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
         CUSTOM_COLOR_VARS[prev.length % CUSTOM_COLOR_VARS.length];
       const { hours } = capHabitHours(1, totalHours(prev), span.wakingHoursPerDay);
       if (hours <= 0) {
-        setCapWarning("No waking hours left - reduce another habit first.");
+        setCapWarning("No waking hours left. Reduce another habit first.");
         return prev;
       }
       return [
@@ -105,11 +105,12 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
 
   return (
     <section className="animate-fade-in-up">
-      <h2 className="font-display text-2xl font-bold tracking-tight">
+      <h2 className="font-display text-3xl font-extrabold tracking-tight">
         Where do your waking hours go?
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Tap a habit - averages are pre-filled, drag to match your reality.
+      <p className="mt-1.5 text-sm text-muted-foreground">
+        Tap a habit. Averages are pre-filled; drag until it matches your
+        reality.
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -172,24 +173,25 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
       )}
 
       {habits.length > 0 && (
-        <div className="mt-5 space-y-3">
+        <div className="mt-6 border-t border-border">
           {habits.map((h) => (
             <div
               key={h.id}
-              className="rounded-lg border border-border bg-card p-3"
+              className="border-b border-border py-3.5"
               data-testid={`habit-row-${h.id}`}
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 text-sm font-medium">
                   <span
-                    className="inline-block h-2.5 w-2.5 rounded-sm"
+                    className="inline-block h-2.5 w-2.5 rounded-[3px]"
                     style={{ backgroundColor: cssVarHsl(h.colorVar) }}
                   />
                   {h.emoji} {h.label}
                 </span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm font-semibold tabular-nums">
-                    {formatHoursPerDay(h.hoursPerDay)}/day
+                <div className="flex items-center gap-2.5">
+                  <span className="font-mono text-sm font-bold tabular-nums">
+                    {formatHoursPerDay(h.hoursPerDay)}
+                    <span className="font-medium text-muted-foreground">/day</span>
                   </span>
                   <button
                     type="button"
@@ -197,7 +199,7 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
                     onClick={() =>
                       setHabits((prev) => prev.filter((x) => x.id !== h.id))
                     }
-                    className="text-muted-foreground transition-colors hover:text-destructive"
+                    className="text-muted-foreground/60 transition-colors hover:text-destructive"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -211,7 +213,8 @@ export function HabitPicker({ habits, setHabits, span }: HabitPickerProps) {
                 value={h.hoursPerDay}
                 onChange={(e) => setHours(h.id, Number(e.target.value))}
                 aria-label={`${h.label} hours per day`}
-                className="mt-2 w-full accent-primary"
+                className="slider mt-3"
+                style={{ "--range-color": cssVarHsl(h.colorVar) } as React.CSSProperties}
               />
             </div>
           ))}

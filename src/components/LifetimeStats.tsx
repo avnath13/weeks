@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { History } from "lucide-react";
 import { WEEKS_PER_YEAR, type LifeSpan } from "@/lib/timeMath";
 import { formatHoursPerDay } from "@/lib/timeMath";
 import { cssVarHsl } from "@/lib/gridDraw";
@@ -130,16 +129,15 @@ export function LifetimeStats({
 
   return (
     <section className="animate-fade-in-up" data-testid="lifetime-stats">
-      <h2 className="flex items-center gap-2 font-display text-2xl font-bold tracking-tight">
-        <History className="h-5 w-5 text-primary" />
+      <h2 className="font-display text-3xl font-extrabold tracking-tight">
         You are {Math.floor(ageYears)}. Here is where it went.
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-1.5 text-sm text-muted-foreground">
         Cumulative years already spent, and what is still to come if nothing
         changes. Drag any activity to match your life.
       </p>
 
-      <div className="mt-5 space-y-2.5">
+      <div className="mt-6 border-t border-border">
         {rows.map((row, _i, all) => {
           const total = row.spent + row.toCome;
           const maxTotal = Math.max(...all.map((r) => r.spent + r.toCome), 1);
@@ -147,7 +145,7 @@ export function LifetimeStats({
           return (
             <div
               key={row.id}
-              className="rounded-lg border border-border bg-card p-3.5"
+              className="border-b border-border py-4"
               data-testid={`lifetime-row-${row.id}`}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -189,7 +187,8 @@ export function LifetimeStats({
                   value={row.hoursPerDay}
                   aria-label={`${row.label} hours per day`}
                   onChange={(e) => setHours(row.id, Number(e.target.value))}
-                  className="mt-2 w-full accent-primary"
+                  className="slider mt-3"
+                  style={{ "--range-color": cssVarHsl(row.colorVar) } as React.CSSProperties}
                 />
               )}
               {row.fixed && (

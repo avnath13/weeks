@@ -20,9 +20,9 @@ interface HeroProps {
 
 const ISSUE_COPY: Record<BirthDateIssue, string> = {
   empty: "",
-  invalid: "That date doesn't exist - check the day and month.",
+  invalid: "That date doesn't exist. Check the day and month.",
   future: "You haven't been born yet? Pick a date in the past.",
-  "too-old": "Over 120 years - check the year.",
+  "too-old": "That's over 120 years ago. Check the year.",
 };
 
 function Stepper({
@@ -45,21 +45,23 @@ function Stepper({
   testId: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
+      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        {label}
+      </span>
+      <div className="flex items-center gap-1">
         <button
           type="button"
           aria-label={`Decrease ${label}`}
           disabled={value <= min}
           onClick={() => onChange(Math.max(min, +(value - step).toFixed(2)))}
-          className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary text-secondary-foreground transition-colors hover:bg-accent disabled:opacity-40"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30"
         >
           <Minus className="h-3.5 w-3.5" />
         </button>
         <span
           data-testid={testId}
-          className="min-w-[3.5rem] text-center font-mono text-sm font-semibold tabular-nums"
+          className="min-w-[3.5rem] text-center font-mono text-base font-bold tabular-nums"
         >
           {display}
         </span>
@@ -68,7 +70,7 @@ function Stepper({
           aria-label={`Increase ${label}`}
           disabled={value >= max}
           onClick={() => onChange(Math.min(max, +(value + step).toFixed(2)))}
-          className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary text-secondary-foreground transition-colors hover:bg-accent disabled:opacity-40"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>
@@ -88,22 +90,19 @@ export function Hero({
 }: HeroProps) {
   return (
     <section className="animate-fade-in-up">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-        Memento mori
-      </p>
-      <h1 className="mt-3 font-display text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl">
+      <h1 className="max-w-3xl font-display text-6xl font-extrabold leading-[0.98] tracking-[-0.03em] sm:text-8xl">
         Your life is
         <br />
-        ~4,000 weeks.
+        <span className="text-primary">~4,000</span> weeks.
       </h1>
-      <p className="mt-4 max-w-md text-lg text-muted-foreground">
+      <p className="mt-5 max-w-md text-lg text-muted-foreground">
         Want to see where the rest of them are going?
       </p>
 
-      <div className="mt-8 max-w-md space-y-3">
+      <div className="mt-10 max-w-md">
         <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">
-            When were you born?
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Born
           </span>
           <input
             type="date"
@@ -111,16 +110,16 @@ export function Hero({
             value={birthDateInput}
             max={new Date().toISOString().slice(0, 10)}
             onChange={(e) => onBirthDateChange(e.target.value)}
-            className="w-full rounded-lg border border-input bg-card px-3 py-2.5 text-base shadow-sm outline-none ring-primary/50 transition-shadow focus:ring-2"
+            className="mt-1.5 w-full border-b-2 border-border bg-transparent py-2 font-mono text-xl font-bold tabular-nums outline-none transition-colors focus:border-primary"
           />
         </label>
         {birthIssue && ISSUE_COPY[birthIssue] && (
-          <p className="text-sm text-destructive" role="alert" data-testid="birthdate-error">
+          <p className="mt-2 text-sm text-destructive" role="alert" data-testid="birthdate-error">
             {ISSUE_COPY[birthIssue]}
           </p>
         )}
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-x-8 sm:grid-cols-2">
           <Stepper
             label="Live to"
             value={lifeExpectancy}
@@ -142,8 +141,8 @@ export function Hero({
             testId="sleep-value"
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Everything below is measured in <strong>waking time</strong> - your{" "}
+        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+          Everything below is measured in <strong>waking time</strong>: your{" "}
           {24 - sleepHours} waking hours a day.
         </p>
       </div>

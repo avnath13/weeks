@@ -1,4 +1,4 @@
-import { Grid3X3, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import type { Theme } from "@/hooks/useTheme";
 
 export function Header({
@@ -10,13 +10,13 @@ export function Header({
 }) {
   return (
     <header className="glass sticky top-0 z-40 border-b">
-      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Grid3X3 size={18} />
-          </div>
-          <span className="font-display text-lg font-bold tracking-tight">
-            Weeks
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+        <div className="flex items-baseline gap-2">
+          <span className="font-display text-xl font-extrabold tracking-tight">
+            weeks<span className="text-primary">.</span>
+          </span>
+          <span className="hidden font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground sm:inline">
+            memento mori
           </span>
         </div>
         <button
@@ -24,7 +24,7 @@ export function Header({
           onClick={onToggleTheme}
           aria-label="Toggle theme"
           data-testid="theme-toggle"
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-accent"
+          className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           {theme === "dark" ? (
             <Sun className="h-4 w-4" />

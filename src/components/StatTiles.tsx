@@ -32,21 +32,28 @@ export function StatTiles({ span }: { span: LifeSpan }) {
 
   return (
     <div data-testid="stat-tiles">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {tiles.map((t) => (
+      <div className="grid grid-cols-2 border-y border-border sm:grid-cols-4">
+        {tiles.map((t, i) => (
           <div
             key={t.label}
-            className="rounded-xl border border-border bg-card px-4 py-3"
+            className={cn(
+              "border-border px-4 py-4 sm:px-6",
+              i === 0 && "pl-0",
+              i % 2 === 1 && "border-l",           // mobile: hairline between the two columns
+              i >= 2 && "border-t sm:border-t-0",  // mobile: hairline between the two rows
+              i > 0 && "sm:border-l",              // desktop: hairline between all four
+              i === 2 && "max-sm:pl-0",
+            )}
           >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               {t.label}
             </p>
-            <p className="mt-1 font-mono tabular-nums">
-              <span className="text-2xl font-bold">
+            <p className="mt-1.5 font-mono tabular-nums">
+              <span className="text-3xl font-bold tracking-tight">
                 {t.big.toLocaleString()}
               </span>
               <span className="text-sm text-muted-foreground">
-                /{t.small.toLocaleString()}
+                {" "}/{t.small.toLocaleString()}
               </span>
             </p>
           </div>

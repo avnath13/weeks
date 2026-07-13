@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarClock, Share2, Loader2, Check } from "lucide-react";
+import { Share2, Loader2, Check } from "lucide-react";
 import {
   computeCountdown,
   parseDateInput,
@@ -167,13 +167,12 @@ export function CountdownPanel({
 
   return (
     <section className="animate-fade-in-up" data-testid="countdown-panel">
-      <h2 className="flex items-center gap-2 font-display text-2xl font-bold tracking-tight">
-        <CalendarClock className="h-5 w-5 text-primary" />
+      <h2 className="font-display text-3xl font-extrabold tracking-tight">
         Counting down to something?
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-1.5 text-sm text-muted-foreground">
         Put it on your grid. A date stops being abstract when you can see the
-        boxes between here and there.
+        weeks between here and there.
       </p>
 
       <div className="mt-5 grid max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
@@ -201,14 +200,14 @@ export function CountdownPanel({
 
       {countdown && !countdown.past && (
         <div className="mt-6 space-y-5">
-          <div className="rounded-xl border border-border bg-card p-5" data-testid="countdown-stats">
-            <h3 className="font-display text-3xl font-extrabold leading-tight sm:text-4xl">
+          <div className="border-l-4 border-primary pl-5 sm:pl-6" data-testid="countdown-stats">
+            <h3 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
               <span className="text-primary">
-                {countdown.boxesUntil.toLocaleString()} boxes
+                {countdown.boxesUntil.toLocaleString()} weeks
               </span>{" "}
               until {displayLabel}.
             </h3>
-            <p className="mt-2 font-mono text-sm tabular-nums text-muted-foreground">
+            <p className="mt-3 font-mono text-sm tabular-nums text-muted-foreground">
               = {countdown.daysUntil.toLocaleString()} days ·{" "}
               <strong className="text-foreground">
                 {countdown.percentOfRemainingWeeks.toFixed(1)}% of the weeks you
@@ -231,7 +230,7 @@ export function CountdownPanel({
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               The highlighted band is the stretch of your life between now and{" "}
-              {displayLabel}.
+              {displayLabel}. One box per week.
             </p>
           </div>
 
@@ -241,7 +240,7 @@ export function CountdownPanel({
               data-testid="countdown-share"
               onClick={() => void doShare()}
               disabled={busy}
-              className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:scale-[1.02] disabled:opacity-60"
+              className="flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
               {busy ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

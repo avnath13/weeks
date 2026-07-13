@@ -75,7 +75,7 @@ export function ShareSection({
       if (outcome === "downloaded") setFeedback("Saved to your downloads.");
       else if (outcome === "shared") setFeedback("Shared.");
     } catch {
-      setFeedback("Couldn't generate the image on this browser - try the copy button.");
+      setFeedback("Couldn't generate the image on this browser. Try the copy button.");
     } finally {
       setBusy(false);
     }
@@ -96,7 +96,7 @@ export function ShareSection({
       ]);
       setFeedback("Copied to clipboard.");
     } catch {
-      setFeedback("Clipboard not available here - use Share instead.");
+      setFeedback("Clipboard not available here. Use Share instead.");
     }
   };
 
@@ -104,11 +104,11 @@ export function ShareSection({
 
   return (
     <section className="animate-fade-in-up" data-testid="share-section">
-      <h2 className="font-display text-2xl font-bold tracking-tight">
+      <h2 className="font-display text-3xl font-extrabold tracking-tight">
         Make it real. Show someone.
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Your grid, one stat, no excuses.
+      <p className="mt-1.5 text-sm text-muted-foreground">
+        Your grid and one stat, sized for a story or a link preview.
       </p>
 
       <div className="mt-4 flex items-center gap-2">
@@ -149,7 +149,7 @@ export function ShareSection({
           data-testid="share-button"
           onClick={() => void doShare()}
           disabled={busy}
-          className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:scale-[1.02] disabled:opacity-60"
+          className="flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
           {busy ? (
             <Loader2 className="h-4 w-4 animate-spin" />
