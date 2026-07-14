@@ -164,13 +164,24 @@ export function parseScreenTimeText(text: string): ParseResult {
   let guessedPeriod: Period | null = null;
   let periodConfident = false;
 
-  // NOTE: "Daily Average" deliberately implies nothing. iOS shows that
-  // headline over lists of weekly totals AND over lists of per-day averages
-  // depending on the view; treating it as a signal misled real users. Only
-  // explicit day/week wording is trusted; otherwise magnitude decides and
-  // the UI flags the guess for the user to flip.
+  // The iOS Screen Time header carries a Day/Week selector; that word at the
+  // top of the screenshot is the authoritative signal. "Week" wins when both
+  // appear (the segmented control renders both labels; the selected one is
+  // what users screenshot for). "Daily Average" implies nothing - iOS shows
+  // it over weekly totals and per-day averages alike.
+  const topLines = lines.slice(0, 8).join("\n").toLowerCase();
   const full = text.toLowerCase();
-  if (/last week|this week|weekly/.test(full)) {
+  if (/\bweek\b/.test(topLines)) {
+    guessedPeriod = "week";
+    periodConfident = true;
+  } else if (
+    /\b(day|today|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(
+      topLines,
+    )
+  ) {
+    guessedPeriod = "day";
+    periodConfident = true;
+  } else if (/last week|this week|weekly/.test(full)) {
     guessedPeriod = "week";
     periodConfident = true;
   } else if (/\btoday\b|\byesterday\b|digital wellbeing|dashboard/.test(full)) {

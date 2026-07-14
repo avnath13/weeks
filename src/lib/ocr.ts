@@ -79,13 +79,16 @@ async function preprocess(file: File): Promise<HTMLCanvasElement> {
     const total = px.length / 4;
     const invert = sum / total < 110; // dark mode
 
-    // Contrast stretch between the 2nd and 98th percentile.
+    // Contrast stretch between the 0.5th and 99.5th percentile. A small
+    // percentile matters: screenshot text is a tiny fraction of the pixels
+    // (the rest is background), so a larger cut would ignore the text
+    // entirely and land both bounds on the background color.
     let lo = 0;
     let hi = 255;
     let acc = 0;
     for (let v = 0; v < 256; v++) {
       acc += hist[v];
-      if (acc >= total * 0.02) {
+      if (acc >= total * 0.005) {
         lo = v;
         break;
       }
@@ -93,16 +96,27 @@ async function preprocess(file: File): Promise<HTMLCanvasElement> {
     acc = 0;
     for (let v = 255; v >= 0; v--) {
       acc += hist[v];
-      if (acc >= total * 0.02) {
+      if (acc >= total * 0.005) {
         hi = v;
         break;
       }
     }
-    const range = Math.max(1, hi - lo);
-    for (let i = 0; i < px.length; i += 4) {
-      let v = Math.min(255, Math.max(0, ((px[i] - lo) / range) * 255));
-      if (invert) v = 255 - v;
-      px[i] = px[i + 1] = px[i + 2] = v;
+    // Only stretch when the percentile range is genuinely wide enough to
+    // help. On a mostly-single-color image (lots of whitespace) both bounds
+    // collapse onto the background; stretching then would crush all the text
+    // to one value and blank the image. In that case the plain grayscale is
+    // already high-contrast, so leave it (just handle dark mode).
+    const range = hi - lo;
+    if (range >= 40) {
+      for (let i = 0; i < px.length; i += 4) {
+        let v = Math.min(255, Math.max(0, ((px[i] - lo) / range) * 255));
+        if (invert) v = 255 - v;
+        px[i] = px[i + 1] = px[i + 2] = v;
+      }
+    } else if (invert) {
+      for (let i = 0; i < px.length; i += 4) {
+        px[i] = px[i + 1] = px[i + 2] = 255 - px[i];
+      }
     }
     ctx.putImageData(data, 0, 0);
     return canvas;

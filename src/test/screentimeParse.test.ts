@@ -147,6 +147,39 @@ describe("parseScreenTimeText - OCR noise", () => {
   });
 });
 
+describe("parseScreenTimeText - Day/Week header selector", () => {
+  it("'Week' at the top forces weekly, even with small values", () => {
+    const result = parseScreenTimeText(
+      "Week\nSCREEN TIME\nMOST USED\nWhatsApp\n42m\nMail\n21m",
+    );
+    expect(result.guessedPeriod).toBe("week");
+    expect(result.periodConfident).toBe(true);
+  });
+
+  it("'Day' at the top forces daily, even with large values", () => {
+    const result = parseScreenTimeText(
+      "Day\nSCREEN TIME\nMOST USED\nInstagram\n6h 12m",
+    );
+    expect(result.guessedPeriod).toBe("day");
+    expect(result.periodConfident).toBe(true);
+  });
+
+  it("'Week' wins when the segmented control shows both Day and Week", () => {
+    const result = parseScreenTimeText(
+      "Day Week\nMOST USED\nInstagram\n14h 30m",
+    );
+    expect(result.guessedPeriod).toBe("week");
+    expect(result.periodConfident).toBe(true);
+  });
+
+  it("app names further down never trigger the header rule", () => {
+    // "Day One" as the 9th line is past the header window.
+    const filler = "MOST USED\nInstagram\n2h\nMail\n1h\nSlack\n1h\nReddit\n30m";
+    const result = parseScreenTimeText(`${filler}\nDay One\n20m`);
+    expect(result.guessedPeriod).toBe("day"); // from magnitude, not the title
+  });
+});
+
 describe("parseScreenTimeText - period sanity", () => {
   it("keeps small daily-average lists as 'day' even with Daily Average text", () => {
     const result = parseScreenTimeText(
