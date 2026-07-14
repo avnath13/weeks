@@ -7,6 +7,7 @@ import {
   Settings2,
   Share2,
 } from "lucide-react";
+import { Analytics } from "@vercel/analytics/react";
 import { useTheme } from "@/hooks/useTheme";
 import { useAppState } from "@/hooks/useAppState";
 import { formatLadder, habitCost } from "@/lib/timeMath";
@@ -288,6 +289,7 @@ export default function App() {
           averages; edit everything. Nothing you enter leaves your browser.
         </p>
       </footer>
+      <Analytics />
     </div>
   );
 }
