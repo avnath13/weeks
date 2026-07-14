@@ -59,9 +59,9 @@ T1kTok
 describe("parseScreenTimeText - iOS weekly view", () => {
   const result = parseScreenTimeText(IOS_WEEKLY);
 
-  it("guesses weekly from magnitude, flagged as a guess (Daily Average is ambiguous)", () => {
+  it("detects weekly confidently from the Daily Average headline", () => {
     expect(result.guessedPeriod).toBe("week");
-    expect(result.periodConfident).toBe(false);
+    expect(result.periodConfident).toBe(true);
   });
 
   it("finds all four apps with correct durations", () => {
@@ -147,49 +147,92 @@ describe("parseScreenTimeText - OCR noise", () => {
   });
 });
 
-describe("parseScreenTimeText - Day/Week header selector", () => {
-  it("'Week' at the top forces weekly, even with small values", () => {
-    const result = parseScreenTimeText(
-      "Week\nSCREEN TIME\nMOST USED\nWhatsApp\n42m\nMail\n21m",
+// The real iOS Week view a user reported: a Limits section (app time LIMITS,
+// not usage) sits ABOVE the Most Used list. Only Most Used is real usage.
+const IOS_REAL_WEEK = `
+21:28
+AV's i17proMax
+Devices
+Week
+Day
+Screen Time
+Daily Average
+5h 11m
+35% from last week
+S M T W T F S
+Social
+5h 57m
+Productivity & Finance
+1h 6m
+Other
+24m
+Total Screen Time
+10h 23m
+Updated today at 20:54
+Limits
+Instagram
+30 min
+com.apple.helpviewer
+2 min
+Most Used
+Show Categories
+Instagram
+4h 9m
+LinkedIn
+52m
+WhatsApp
+42m
+Gmail
+34m
+`;
+
+describe("parseScreenTimeText - real iOS week view with Limits section", () => {
+  const result = parseScreenTimeText(IOS_REAL_WEEK);
+
+  it("reads usage from Most Used, not the Limits section", () => {
+    const insta = result.apps.find((a) => a.appId === "instagram");
+    // 4h 9m from Most Used, NOT the 30 min limit.
+    expect(insta?.hoursInPeriod).toBeCloseTo(4 + 9 / 60, 2);
+  });
+
+  it("ignores category summaries and totals as apps", () => {
+    expect(
+      result.apps.some((a) =>
+        /social|productivity|other|total|screen time|average/i.test(a.label),
+      ),
+    ).toBe(false);
+  });
+
+  it("never surfaces com.apple.helpviewer (bundle-id, Limits-only)", () => {
+    expect(result.apps.some((a) => /helpviewer/i.test(a.label))).toBe(false);
+  });
+
+  it("captures the four real apps", () => {
+    const ids = result.apps.map((a) => a.appId ?? a.label);
+    expect(ids).toContain("instagram");
+    expect(ids).toContain("whatsapp");
+    expect(result.apps.find((a) => a.appId === "whatsapp")?.hoursInPeriod).toBeCloseTo(
+      42 / 60,
+      3,
     );
+  });
+
+  it("detects the week period confidently", () => {
     expect(result.guessedPeriod).toBe("week");
     expect(result.periodConfident).toBe(true);
   });
 
-  it("'Day' at the top forces daily, even with large values", () => {
-    const result = parseScreenTimeText(
-      "Day\nSCREEN TIME\nMOST USED\nInstagram\n6h 12m",
-    );
-    expect(result.guessedPeriod).toBe("day");
-    expect(result.periodConfident).toBe(true);
-  });
-
-  it("'Week' wins when the segmented control shows both Day and Week", () => {
-    const result = parseScreenTimeText(
-      "Day Week\nMOST USED\nInstagram\n14h 30m",
-    );
-    expect(result.guessedPeriod).toBe("week");
-    expect(result.periodConfident).toBe(true);
-  });
-
-  it("app names further down never trigger the header rule", () => {
-    // "Day One" as the 9th line is past the header window.
-    const filler = "MOST USED\nInstagram\n2h\nMail\n1h\nSlack\n1h\nReddit\n30m";
-    const result = parseScreenTimeText(`${filler}\nDay One\n20m`);
-    expect(result.guessedPeriod).toBe("day"); // from magnitude, not the title
+  it("end-to-end: WhatsApp 42m/week converts to 6m/day", () => {
+    const whatsapp = result.apps.find((a) => a.appId === "whatsapp")!;
+    expect(
+      Math.round(toHoursPerDay(whatsapp.hoursInPeriod, result.guessedPeriod) * 60),
+    ).toBe(6);
   });
 });
 
 describe("parseScreenTimeText - period sanity", () => {
-  it("keeps small daily-average lists as 'day' even with Daily Average text", () => {
-    const result = parseScreenTimeText(
-      "Daily Average\n1h 34m\nMOST USED\nInstagram\n34m\nMail\n20m",
-    );
-    expect(result.guessedPeriod).toBe("day");
-  });
-
   it("overrides an explicit 'today' when a single app exceeds 16h", () => {
-    const result = parseScreenTimeText("Today\nInstagram\n22h 10m");
+    const result = parseScreenTimeText("Today\nMOST USED\nInstagram\n22h 10m");
     expect(result.guessedPeriod).toBe("week");
     expect(result.periodConfident).toBe(false);
   });

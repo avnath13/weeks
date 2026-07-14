@@ -164,24 +164,13 @@ export function parseScreenTimeText(text: string): ParseResult {
   let guessedPeriod: Period | null = null;
   let periodConfident = false;
 
-  // The iOS Screen Time header carries a Day/Week selector; that word at the
-  // top of the screenshot is the authoritative signal. "Week" wins when both
-  // appear (the segmented control renders both labels; the selected one is
-  // what users screenshot for). "Daily Average" implies nothing - iOS shows
-  // it over weekly totals and per-day averages alike.
-  const topLines = lines.slice(0, 8).join("\n").toLowerCase();
   const full = text.toLowerCase();
-  if (/\bweek\b/.test(topLines)) {
-    guessedPeriod = "week";
-    periodConfident = true;
-  } else if (
-    /\b(day|today|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(
-      topLines,
-    )
-  ) {
-    guessedPeriod = "day";
-    periodConfident = true;
-  } else if (/last week|this week|weekly/.test(full)) {
+
+  // Period detection. The iOS Day/Week selector shows BOTH words in every
+  // screenshot, so their mere presence is useless. What actually differs by
+  // view: the Week view headlines "Daily Average" and compares "from last
+  // week"; the Day view headlines "Today". Those are the reliable signals.
+  if (/daily average|from last week|last week|this week|weekly/.test(full)) {
     guessedPeriod = "week";
     periodConfident = true;
   } else if (/\btoday\b|\byesterday\b|digital wellbeing|dashboard/.test(full)) {
@@ -189,13 +178,43 @@ export function parseScreenTimeText(text: string): ParseResult {
     periodConfident = true;
   }
 
+  // Restrict app extraction to the "Most Used" section. Everything above it -
+  // Daily Average, the category summary (Social / Productivity / Other),
+  // Total Screen Time, and especially the "Limits" list (which shows app time
+  // LIMITS like "Instagram 30 min", not usage) - reports numbers that are not
+  // per-app usage and would otherwise pollute or overwrite the real values.
+  const mostUsedIdx = lines.findIndex((l) => /most\s*used/i.test(l));
+  const appLines = mostUsedIdx >= 0 ? lines.slice(mostUsedIdx + 1) : lines;
+
+  let apps = extractApps(appLines);
+  // If the Most Used slice yielded nothing (marker misread, or a layout
+  // without it), fall back to scanning the whole screenshot.
+  if (apps.length === 0 && mostUsedIdx >= 0) {
+    apps = extractApps(lines);
+  }
+
+  const maxHours = Math.max(0, ...apps.map((a) => a.hoursInPeriod));
+  if (guessedPeriod === null) {
+    guessedPeriod = maxHours > 5 ? "week" : "day";
+  } else if (guessedPeriod === "day" && maxHours > 16) {
+    // No one has 16+ waking hours in one app in a day; must be weekly totals.
+    guessedPeriod = "week";
+    periodConfident = false;
+  }
+
+  return { apps, guessedPeriod, periodConfident };
+}
+
+/**
+ * Pull app/duration rows out of a block of OCR lines. Handles both layouts:
+ * name and duration on the SAME line ("Instagram 14h 32m", when OCR merges
+ * columns) and the name a line or two ABOVE the duration ("Instagram" /
+ * "Social" / "14h 32m", the native iOS list with a category subtitle).
+ */
+function extractApps(lines: string[]): ParsedApp[] {
   const apps: ParsedApp[] = [];
   const seen = new Set<string>();
 
-  // Screen Time lists come in two layouts: name and duration on the SAME
-  // line ("Instagram 14h 32m" - common when OCR merges columns) or the name
-  // on one line with the duration on the NEXT ("Instagram" / "14h 32m" -
-  // the native iOS list layout). Handle both.
   for (let idx = 0; idx < lines.length; idx++) {
     const line = lines[idx];
     const duration = parseDuration(line);
@@ -239,16 +258,7 @@ export function parseScreenTimeText(text: string): ParseResult {
     });
   }
 
-  const maxHours = Math.max(0, ...apps.map((a) => a.hoursInPeriod));
-  if (guessedPeriod === null) {
-    guessedPeriod = maxHours > 5 ? "week" : "day";
-  } else if (guessedPeriod === "day" && maxHours > 16) {
-    // No one has 16+ waking hours in one app in a day; must be weekly totals.
-    guessedPeriod = "week";
-    periodConfident = false;
-  }
-
-  return { apps, guessedPeriod, periodConfident };
+  return apps;
 }
 
 function cleanLabel(raw: string): string | null {
