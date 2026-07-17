@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, Download, Loader2, Share2 } from "lucide-react";
+import { Check, Copy, Download, Link2, Loader2, Share2 } from "lucide-react";
 import type { LifeSpan } from "@/lib/timeMath";
 import type { SelectedHabit } from "@/lib/habits";
 import {
@@ -8,6 +8,7 @@ import {
   canvasToBlob,
   type CardFormat,
 } from "@/lib/shareCard";
+import { buildShareLink } from "@/lib/shareLink";
 import { cn } from "@/lib/utils";
 
 interface ShareSectionProps {
@@ -16,6 +17,7 @@ interface ShareSectionProps {
   reclaimMode: boolean;
   sleepHours: number;
   lifeExpectancy: number;
+  birthDateInput: string;
 }
 
 export function ShareSection({
@@ -24,6 +26,7 @@ export function ShareSection({
   reclaimMode,
   sleepHours,
   lifeExpectancy,
+  birthDateInput,
 }: ShareSectionProps) {
   const [format, setFormat] = useState<CardFormat>("story");
   const [busy, setBusy] = useState(false);
@@ -78,6 +81,22 @@ export function ShareSection({
       setFeedback("Couldn't generate the image on this browser. Try the copy button.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const doCopyLink = async () => {
+    setFeedback(null);
+    try {
+      const link = buildShareLink({
+        birthDateInput,
+        lifeExpectancy,
+        sleepHours,
+        habits,
+      });
+      await navigator.clipboard.writeText(link);
+      setFeedback("Link copied. Whoever opens it sees this exact grid.");
+    } catch {
+      setFeedback("Clipboard not available here.");
     }
   };
 
@@ -171,6 +190,14 @@ export function ShareSection({
           className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:bg-accent sm:hidden"
         >
           <Download className="h-4 w-4" /> Save
+        </button>
+        <button
+          type="button"
+          data-testid="copy-link-button"
+          onClick={() => void doCopyLink()}
+          className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:bg-accent"
+        >
+          <Link2 className="h-4 w-4" /> Copy link
         </button>
       </div>
       {feedback && (

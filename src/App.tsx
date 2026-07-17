@@ -38,7 +38,8 @@ const TABS: { id: Tab; label: string; icon: typeof Grid3X3 }[] = [
 ];
 
 function tabFromHash(): Tab {
-  const h = window.location.hash.replace("#", "");
+  // Tolerate prefill params from shared links: "#life?b=...".
+  const h = window.location.hash.replace("#", "").split("?")[0];
   return (TABS.some((t) => t.id === h) ? h : "life") as Tab;
 }
 
@@ -275,6 +276,7 @@ export default function App() {
                 reclaimMode={state.reclaimMode}
                 sleepHours={state.sleepHours}
                 lifeExpectancy={state.lifeExpectancy}
+                birthDateInput={state.birthDateInput}
               />
             )}
           </div>

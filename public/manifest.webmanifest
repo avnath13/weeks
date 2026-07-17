@@ -1,0 +1,14 @@
+{
+  "name": "Weeks - your life in boxes",
+  "short_name": "Weeks",
+  "description": "Your life is ~4,000 weeks. See what your habits cost in the weeks you have left.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0e1a",
+  "theme_color": "#0b0e1a",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

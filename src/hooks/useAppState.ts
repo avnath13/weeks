@@ -12,6 +12,7 @@ import {
 } from "@/lib/timeMath";
 import type { SelectedHabit } from "@/lib/habits";
 import { clearAllData, loadState, saveState } from "@/lib/storage";
+import { parseShareParams, stripShareParams } from "@/lib/shareLink";
 
 export interface AppState {
   birthDateInput: string;
@@ -40,18 +41,29 @@ export interface AppState {
 
 export function useAppState(): AppState {
   const persisted = useRef(loadState()).current;
+  // A shared link's prefill params beat persisted state (the recipient asked
+  // for this exact setup by opening the link), then vanish from the URL so
+  // the recipient's own edits persist as usual.
+  const shared = useRef(parseShareParams(window.location.hash)).current;
+  useEffect(() => {
+    if (shared) stripShareParams();
+  }, [shared]);
 
   const [birthDateInput, setBirthDateInput] = useState(
-    persisted?.birthDateInput ?? "",
+    shared?.birthDateInput ?? persisted?.birthDateInput ?? "",
   );
   const [lifeExpectancy, setLifeExpectancyRaw] = useState(
-    clampLifeExpectancy(persisted?.lifeExpectancy ?? LIFE_EXPECTANCY_DEFAULT),
+    clampLifeExpectancy(
+      shared?.lifeExpectancy ??
+        persisted?.lifeExpectancy ??
+        LIFE_EXPECTANCY_DEFAULT,
+    ),
   );
   const [sleepHours, setSleepHoursRaw] = useState(
-    clampSleepHours(persisted?.sleepHours ?? SLEEP_DEFAULT),
+    clampSleepHours(shared?.sleepHours ?? persisted?.sleepHours ?? SLEEP_DEFAULT),
   );
   const [habits, setHabits] = useState<SelectedHabit[]>(
-    persisted?.habits ?? [],
+    shared && shared.habits.length > 0 ? shared.habits : persisted?.habits ?? [],
   );
   const [hiddenChips, setHiddenChips] = useState<string[]>(
     persisted?.hiddenChips ?? [],
