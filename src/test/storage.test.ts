@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  addCheckIn,
   clearAllData,
+  clearCommitment,
   exportAllData,
   importAllData,
-  loadCountdownRaw,
+  loadCheckIns,
+  loadCommitment,
+  loadCountdownEvents,
   loadLifetimeHours,
   loadState,
   loadTheme,
-  saveCountdownRaw,
+  saveCommitment,
+  saveCountdownEvents,
   saveLifetimeHours,
   saveState,
   saveTheme,
@@ -117,11 +122,95 @@ describe("theme / lifetime / countdown accessors", () => {
     expect(loadLifetimeHours()).toEqual({ phone: 4.5 });
   });
 
-  it("returns null for corrupt lifetime/countdown JSON", () => {
+  it("returns null for corrupt lifetime JSON", () => {
     ls.setItem("weeks.lifetime.v1", "{oops");
     expect(loadLifetimeHours()).toBeNull();
-    ls.setItem("weeks.countdown.v1", "{oops");
-    expect(loadCountdownRaw()).toBeNull();
+  });
+});
+
+describe("countdown events", () => {
+  it("round-trips a list", () => {
+    const events = [
+      { id: "a", label: "wedding", dateInput: "2027-09-18" },
+      { id: "b", label: "", dateInput: "2030-01-01" },
+    ];
+    saveCountdownEvents(events);
+    expect(loadCountdownEvents()).toEqual(events);
+  });
+
+  it("migrates a v1 single-event payload in place", () => {
+    ls.setItem(
+      "weeks.countdown.v1",
+      JSON.stringify({ label: "the wedding", dateInput: "2027-09-18" }),
+    );
+    const events = loadCountdownEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      label: "the wedding",
+      dateInput: "2027-09-18",
+    });
+    // migration wrote the v2 key so the next load skips v1
+    expect(ls.getItem("weeks.countdown.v2")).not.toBeNull();
+  });
+
+  it("returns empty for corrupt or missing data", () => {
+    expect(loadCountdownEvents()).toEqual([]);
+    ls.setItem("weeks.countdown.v2", "{oops");
+    expect(loadCountdownEvents()).toEqual([]);
+  });
+
+  it("drops malformed entries", () => {
+    ls.setItem(
+      "weeks.countdown.v2",
+      JSON.stringify([{ id: "a", label: "x", dateInput: "2030-01-01" }, { id: 5 }, null]),
+    );
+    expect(loadCountdownEvents()).toHaveLength(1);
+  });
+});
+
+describe("commitment & check-ins", () => {
+  const COMMITMENT = {
+    startedAt: "2026-07-01",
+    targets: [
+      {
+        id: "instagram",
+        label: "Instagram",
+        emoji: "📸",
+        colorVar: "--event-rose",
+        fromHours: 2.5,
+        toHours: 1,
+      },
+    ],
+  };
+
+  it("round-trips a commitment", () => {
+    saveCommitment(COMMITMENT);
+    expect(loadCommitment()).toEqual(COMMITMENT);
+  });
+
+  it("returns null for a commitment with no valid targets", () => {
+    ls.setItem(
+      "weeks.commitment.v1",
+      JSON.stringify({ startedAt: "2026-07-01", targets: [{ id: 7 }] }),
+    );
+    expect(loadCommitment()).toBeNull();
+  });
+
+  it("appends check-ins, replacing same-day entries", () => {
+    addCheckIn({ date: "2026-07-05", hours: { instagram: 2 } });
+    addCheckIn({ date: "2026-07-12", hours: { instagram: 1.5 } });
+    addCheckIn({ date: "2026-07-12", hours: { instagram: 1 } });
+    const all = loadCheckIns();
+    expect(all).toHaveLength(2);
+    expect(all.find((c) => c.date === "2026-07-12")?.hours.instagram).toBe(1);
+  });
+
+  it("clearCommitment removes commitment and check-ins together", () => {
+    saveCommitment(COMMITMENT);
+    addCheckIn({ date: "2026-07-05", hours: { instagram: 2 } });
+    clearCommitment();
+    expect(loadCommitment()).toBeNull();
+    expect(loadCheckIns()).toEqual([]);
   });
 });
 
@@ -130,7 +219,21 @@ describe("clearAllData", () => {
     saveState(STATE);
     saveTheme("dark");
     saveLifetimeHours({ tv: 2 });
-    saveCountdownRaw({ label: "x", dateInput: "2030-01-01" });
+    saveCountdownEvents([{ id: "a", label: "x", dateInput: "2030-01-01" }]);
+    saveCommitment({
+      startedAt: "2026-07-01",
+      targets: [
+        {
+          id: "instagram",
+          label: "Instagram",
+          emoji: "📸",
+          colorVar: "--event-rose",
+          fromHours: 2.5,
+          toHours: 1,
+        },
+      ],
+    });
+    addCheckIn({ date: "2026-07-05", hours: { instagram: 2 } });
     ls.setItem("bigpicture.theme", "dark");
     clearAllData();
     expect(ls.length).toBe(0);
@@ -142,7 +245,8 @@ describe("export / import", () => {
     saveState(STATE);
     saveTheme("dark");
     saveLifetimeHours({ tv: 2 });
-    saveCountdownRaw({ label: "wedding", dateInput: "2027-09-18" });
+    const events = [{ id: "a", label: "wedding", dateInput: "2027-09-18" }];
+    saveCountdownEvents(events);
 
     const backup = exportAllData();
     clearAllData();
@@ -152,10 +256,7 @@ describe("export / import", () => {
     expect(loadState()).toEqual(STATE);
     expect(loadTheme()).toBe("dark");
     expect(loadLifetimeHours()).toEqual({ tv: 2 });
-    expect(loadCountdownRaw()).toEqual({
-      label: "wedding",
-      dateInput: "2027-09-18",
-    });
+    expect(loadCountdownEvents()).toEqual(events);
   });
 
   it("rejects files that aren't weeks backups", () => {

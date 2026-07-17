@@ -10,7 +10,12 @@ import { toHoursPerDay, type Period } from "@/lib/screentimeParse";
 import { CUSTOM_COLOR_VARS, type SelectedHabit } from "@/lib/habits";
 import { capHabitHours, type LifeSpan } from "@/lib/timeMath";
 import { totalHours } from "@/lib/habits";
-import { cn } from "@/lib/utils";
+import { addCheckIn, loadCommitment } from "@/lib/storage";
+import { cn, todayIso } from "@/lib/utils";
+
+/** Fired after an import records a commitment check-in, so the reclaim
+ * panel (a sibling, not a parent) can refresh its progress card. */
+export const CHECKIN_EVENT = "weeks:checkin";
 
 /** One row in the confirm card: parsed from OCR, or added by hand. */
 interface EditableRow {
@@ -198,6 +203,24 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
   const applyConfirmed = () => {
     if (stage.kind !== "confirm") return;
     const { rows, period } = stage;
+
+    // A screenshot is evidence: when a commitment exists, record today's
+    // observed hours for the imported apps as a check-in.
+    const observed: Record<string, number> = {};
+    for (const row of rows) {
+      if (!row.checked) continue;
+      const hoursPerDay = rowHoursPerDay(row, period);
+      if (hoursPerDay <= 0) continue;
+      const id =
+        (row.appId && PARSED_TO_PRESET[row.appId]) ??
+        `app-${(row.appId ?? row.label).toLowerCase().replace(/\s+/g, "-")}`;
+      observed[id] = hoursPerDay;
+    }
+    if (loadCommitment() && Object.keys(observed).length > 0) {
+      addCheckIn({ date: todayIso(), hours: observed });
+      window.dispatchEvent(new CustomEvent(CHECKIN_EVENT));
+    }
+
     setHabits((prev) => {
       const next = [...prev];
       let colorCursor = 0;

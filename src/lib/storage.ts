@@ -1,4 +1,5 @@
 import type { SelectedHabit } from "./habits";
+import type { CheckIn, Commitment } from "./commitment";
 
 /**
  * Versioned localStorage persistence with corrupt-data recovery.
@@ -12,6 +13,9 @@ import type { SelectedHabit } from "./habits";
 const KEY = "weeks.state.v1";
 const LIFETIME_KEY = "weeks.lifetime.v1";
 const COUNTDOWN_KEY = "weeks.countdown.v1";
+const COUNTDOWN_V2_KEY = "weeks.countdown.v2";
+const COMMITMENT_KEY = "weeks.commitment.v1";
+const CHECKINS_KEY = "weeks.checkins.v1";
 const THEME_KEY = "weeks.theme";
 
 export interface PersistedState {
@@ -115,17 +119,119 @@ export function saveLifetimeHours(hours: Record<string, number>): void {
   writeRaw(LIFETIME_KEY, JSON.stringify(hours));
 }
 
-export function loadCountdownRaw(): unknown {
+export interface CountdownEvent {
+  id: string;
+  label: string;
+  dateInput: string;
+}
+
+function readJson(key: string): unknown {
   try {
-    const raw = readRaw(COUNTDOWN_KEY);
+    const raw = readRaw(key);
     return raw ? (JSON.parse(raw) as unknown) : null;
   } catch {
     return null;
   }
 }
 
-export function saveCountdownRaw(value: unknown): void {
-  writeRaw(COUNTDOWN_KEY, JSON.stringify(value));
+/**
+ * Countdown events. v1 stored a single {label, dateInput}; v2 stores a
+ * list. A v1 payload found on load is migrated in place.
+ */
+export function loadCountdownEvents(): CountdownEvent[] {
+  const v2 = readJson(COUNTDOWN_V2_KEY);
+  if (Array.isArray(v2)) {
+    return v2.filter(
+      (e): e is CountdownEvent =>
+        typeof e === "object" &&
+        e !== null &&
+        typeof e.id === "string" &&
+        typeof e.label === "string" &&
+        typeof e.dateInput === "string",
+    );
+  }
+  const v1 = readJson(COUNTDOWN_KEY) as {
+    label?: unknown;
+    dateInput?: unknown;
+  } | null;
+  if (
+    v1 &&
+    typeof v1 === "object" &&
+    typeof v1.dateInput === "string" &&
+    v1.dateInput !== ""
+  ) {
+    const migrated: CountdownEvent[] = [
+      {
+        id: "migrated-v1",
+        label: typeof v1.label === "string" ? v1.label.slice(0, 40) : "",
+        dateInput: v1.dateInput,
+      },
+    ];
+    saveCountdownEvents(migrated);
+    return migrated;
+  }
+  return [];
+}
+
+export function saveCountdownEvents(events: CountdownEvent[]): void {
+  writeRaw(COUNTDOWN_V2_KEY, JSON.stringify(events));
+}
+
+export function loadCommitment(): Commitment | null {
+  const parsed = readJson(COMMITMENT_KEY) as Partial<Commitment> | null;
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    typeof parsed.startedAt !== "string" ||
+    !Array.isArray(parsed.targets)
+  )
+    return null;
+  const targets = parsed.targets.filter(
+    (t): t is Commitment["targets"][number] =>
+      typeof t === "object" &&
+      t !== null &&
+      typeof t.id === "string" &&
+      typeof t.label === "string" &&
+      typeof t.fromHours === "number" &&
+      Number.isFinite(t.fromHours) &&
+      typeof t.toHours === "number" &&
+      Number.isFinite(t.toHours),
+  );
+  if (targets.length === 0) return null;
+  return { startedAt: parsed.startedAt, targets };
+}
+
+export function saveCommitment(commitment: Commitment): void {
+  writeRaw(COMMITMENT_KEY, JSON.stringify(commitment));
+}
+
+export function clearCommitment(): void {
+  try {
+    window.localStorage.removeItem(COMMITMENT_KEY);
+    window.localStorage.removeItem(CHECKINS_KEY);
+  } catch {
+    /* storage unavailable: nothing to clear */
+  }
+}
+
+export function loadCheckIns(): CheckIn[] {
+  const parsed = readJson(CHECKINS_KEY);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter(
+    (c): c is CheckIn =>
+      typeof c === "object" &&
+      c !== null &&
+      typeof c.date === "string" &&
+      typeof c.hours === "object" &&
+      c.hours !== null,
+  );
+}
+
+/** Append a check-in; a same-day entry is replaced (last log wins). */
+export function addCheckIn(checkIn: CheckIn): CheckIn[] {
+  const next = [...loadCheckIns().filter((c) => c.date !== checkIn.date), checkIn];
+  writeRaw(CHECKINS_KEY, JSON.stringify(next));
+  return next;
 }
 
 export type StoredTheme = "light" | "dark";
@@ -144,6 +250,9 @@ const ALL_KEYS = [
   KEY,
   LIFETIME_KEY,
   COUNTDOWN_KEY,
+  COUNTDOWN_V2_KEY,
+  COMMITMENT_KEY,
+  CHECKINS_KEY,
   THEME_KEY,
   "bigpicture.theme", // legacy theme key from before the weeks.* rename
 ];

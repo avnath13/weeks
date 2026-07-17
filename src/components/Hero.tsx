@@ -7,6 +7,7 @@ import {
   formatHoursPerDay,
   type BirthDateIssue,
 } from "@/lib/timeMath";
+import { todayIso } from "@/lib/utils";
 
 interface HeroProps {
   birthDateInput: string;
@@ -16,14 +17,6 @@ interface HeroProps {
   onLifeExpectancyChange: (v: number) => void;
   sleepHours: number;
   onSleepChange: (v: number) => void;
-}
-
-/** Today as a YYYY-MM-DD string in LOCAL time; toISOString() is UTC and
- * blocks picking "today" for users ahead of UTC in the evening. */
-function todayLocalIso(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 const ISSUE_COPY: Record<BirthDateIssue, string> = {
@@ -116,7 +109,7 @@ export function Hero({
             type="date"
             data-testid="birthdate-input"
             value={birthDateInput}
-            max={todayLocalIso()}
+            max={todayIso()}
             onChange={(e) => onBirthDateChange(e.target.value)}
             className="mt-1.5 w-full border-b-2 border-border bg-transparent py-2 font-mono text-xl font-bold tabular-nums outline-none transition-colors focus:border-primary"
           />

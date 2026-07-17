@@ -1,29 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
-import { Share2, Loader2, Check } from "lucide-react";
+import { Share2, Loader2, Check, Plus, X } from "lucide-react";
 import {
   computeCountdown,
   parseDateInput,
+  type Countdown,
   type LifeSpan,
 } from "@/lib/timeMath";
 import { LifeGrid } from "@/components/LifeGrid";
 import { cssVarHsl, type GridSegment } from "@/lib/gridDraw";
 import { renderCountdownCard, shareOrDownload } from "@/lib/shareCard";
 import type { Theme } from "@/hooks/useTheme";
-import { loadCountdownRaw, saveCountdownRaw } from "@/lib/storage";
+import {
+  loadCountdownEvents,
+  saveCountdownEvents,
+  type CountdownEvent,
+} from "@/lib/storage";
+import { cn } from "@/lib/utils";
 
-interface Saved {
-  label: string;
-  dateInput: string;
-}
+const MAX_EVENTS = 6;
 
-function loadSaved(): Saved {
-  const parsed = loadCountdownRaw() as Partial<Saved> | null;
-  if (!parsed || typeof parsed !== "object") return { label: "", dateInput: "" };
-  return {
-    label: typeof parsed.label === "string" ? parsed.label.slice(0, 40) : "",
-    dateInput: typeof parsed.dateInput === "string" ? parsed.dateInput : "",
-  };
-}
+/** Band colors cycled across events (the featured band uses --primary). */
+const EVENT_COLOR_VARS = [
+  "--primary",
+  "--event-amber",
+  "--event-emerald",
+  "--event-rose",
+  "--event-sky",
+  "--event-violet",
+];
 
 /** "Time left today" rings, hat-tip to lifeecalendar's countdown timer. */
 function TodayRings() {
@@ -69,21 +73,26 @@ function TodayRings() {
             />
             <text
               x="44"
-              y="44"
+              y="49"
               textAnchor="middle"
-              dominantBaseline="central"
-              className="fill-foreground font-mono text-xl font-bold"
+              className="fill-foreground font-mono text-lg font-bold"
             >
               {ring.value}
             </text>
           </svg>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             {ring.label}
           </span>
         </div>
       ))}
     </div>
   );
+}
+
+interface EventWithCountdown extends CountdownEvent {
+  targetMs: number;
+  countdown: Countdown;
+  colorVar: string;
 }
 
 interface CountdownPanelProps {
@@ -103,44 +112,94 @@ export function CountdownPanel({
   lifeExpectancy,
   now,
 }: CountdownPanelProps) {
-  const saved = useMemo(loadSaved, []);
-  const [label, setLabel] = useState(saved.label);
-  const [dateInput, setDateInput] = useState(saved.dateInput);
+  const [events, setEvents] = useState<CountdownEvent[]>(loadCountdownEvents);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [addLabel, setAddLabel] = useState("");
+  const [addDate, setAddDate] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    saveCountdownRaw({ label, dateInput });
-  }, [label, dateInput]);
+    saveCountdownEvents(events);
+  }, [events]);
 
-  const targetMs = useMemo(() => parseDateInput(dateInput), [dateInput]);
-  const countdown = useMemo(
-    () => (targetMs !== null ? computeCountdown(targetMs, birthMs, span, now) : null),
-    [targetMs, birthMs, span, now],
+  // Upcoming events sorted soonest-first, each with its countdown + color.
+  const upcoming: EventWithCountdown[] = useMemo(() => {
+    return events
+      .map((e) => ({ e, targetMs: parseDateInput(e.dateInput) }))
+      .filter((x): x is { e: CountdownEvent; targetMs: number } => x.targetMs !== null)
+      .map(({ e, targetMs }) => ({
+        ...e,
+        targetMs,
+        countdown: computeCountdown(targetMs, birthMs, span, now),
+      }))
+      .filter((e) => !e.countdown.past)
+      .sort((a, b) => a.targetMs - b.targetMs)
+      .map((e, i) => ({
+        ...e,
+        colorVar: EVENT_COLOR_VARS[i % EVENT_COLOR_VARS.length],
+      }));
+  }, [events, birthMs, span, now]);
+
+  const featured =
+    upcoming.find((e) => e.id === selectedId) ?? upcoming[0] ?? null;
+
+  // All bands share the current week as their origin, so paint the furthest
+  // event first and the nearest last: what remains visible of each color is
+  // the stretch between consecutive events.
+  const highlight: GridSegment[] = useMemo(
+    () =>
+      [...upcoming]
+        .reverse()
+        .filter((e) => e.countdown.boxesUntil > 0)
+        .map((e) => ({
+          startWeek: e.countdown.startWeek,
+          count: e.countdown.boxesUntil,
+          color: cssVarHsl(e.colorVar, e.id === featured?.id ? 0.85 : 0.55),
+        })),
+    [upcoming, featured],
   );
 
-  const highlight: GridSegment[] = useMemo(() => {
-    if (!countdown || countdown.past || countdown.boxesUntil === 0) return [];
-    return [
-      {
-        startWeek: countdown.startWeek,
-        count: countdown.boxesUntil,
-        color: cssVarHsl("--primary", 0.85),
-      },
-    ];
-  }, [countdown]);
+  const addEvent = () => {
+    setAddError(null);
+    const targetMs = parseDateInput(addDate);
+    if (targetMs === null) {
+      setAddError("Pick a date first.");
+      return;
+    }
+    if (targetMs <= now) {
+      setAddError("That date already happened. Pick one that's still ahead of you.");
+      return;
+    }
+    if (events.length >= MAX_EVENTS) {
+      setAddError(`Keep it to ${MAX_EVENTS} events; remove one first.`);
+      return;
+    }
+    const id = `evt-${targetMs}-${events.length}`;
+    setEvents((prev) => [
+      ...prev,
+      { id, label: addLabel.trim().slice(0, 40), dateInput: addDate },
+    ]);
+    setSelectedId(id);
+    setAddLabel("");
+    setAddDate("");
+  };
 
-  const displayLabel = label.trim() || "the big day";
+  const removeEvent = (id: string) =>
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+
+  const displayLabel = featured?.label.trim() || "the big day";
 
   const doShare = async () => {
-    if (!countdown || countdown.past) return;
+    if (!featured) return;
     setBusy(true);
     setFeedback(null);
     try {
       const canvas = await renderCountdownCard({
         span,
         label: displayLabel,
-        countdown,
+        countdown: featured.countdown,
         sleepHours,
         lifeExpectancy,
       });
@@ -164,46 +223,110 @@ export function CountdownPanel({
         weeks between here and there.
       </p>
 
-      <div className="mt-5 grid max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="mt-5 grid max-w-lg grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto]">
         <input
-          value={label}
-          onChange={(e) => setLabel(e.target.value.slice(0, 40))}
+          value={addLabel}
+          onChange={(e) => setAddLabel(e.target.value.slice(0, 40))}
+          onKeyDown={(e) => e.key === "Enter" && addEvent()}
           placeholder="What is it? (Kid turns 18...)"
           data-testid="countdown-label"
           className="rounded-lg border border-input bg-card px-3 py-2.5 text-sm shadow-sm outline-none ring-primary/50 transition-shadow focus:ring-2"
         />
         <input
           type="date"
-          value={dateInput}
-          onChange={(e) => setDateInput(e.target.value)}
+          value={addDate}
+          onChange={(e) => setAddDate(e.target.value)}
           data-testid="countdown-date"
           className="rounded-lg border border-input bg-card px-3 py-2.5 text-sm shadow-sm outline-none ring-primary/50 transition-shadow focus:ring-2"
         />
+        <button
+          type="button"
+          data-testid="countdown-add"
+          onClick={addEvent}
+          className="flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" /> Add
+        </button>
       </div>
-
-      {countdown && countdown.past && (
+      {addError && (
         <p className="mt-3 text-sm text-destructive" role="alert">
-          That date already happened. Pick one that's still ahead of you.
+          {addError}
         </p>
       )}
 
-      {countdown && !countdown.past && (
+      {upcoming.length > 1 && (
+        <div className="mt-5 space-y-1.5" data-testid="countdown-events">
+          {upcoming.map((e) => (
+            <button
+              key={e.id}
+              type="button"
+              data-testid={`countdown-event-${e.id}`}
+              onClick={() => setSelectedId(e.id)}
+              className={cn(
+                "flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                e.id === featured?.id
+                  ? "border-primary/60 bg-accent"
+                  : "border-border bg-card hover:bg-accent/60",
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span
+                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm"
+                  style={{ backgroundColor: cssVarHsl(e.colorVar) }}
+                />
+                <span className="truncate font-medium">
+                  {e.label.trim() || "the big day"}
+                </span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {e.dateInput}
+                </span>
+              </span>
+              <span className="flex items-center gap-3">
+                <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                  {e.countdown.boxesUntil.toLocaleString()} wks ·{" "}
+                  {e.countdown.daysUntil.toLocaleString()} days
+                </span>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Remove ${e.label.trim() || "event"}`}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    removeEvent(e.id);
+                  }}
+                  onKeyDown={(ev) => {
+                    if (ev.key === "Enter" || ev.key === " ") {
+                      ev.stopPropagation();
+                      removeEvent(e.id);
+                    }
+                  }}
+                  className="rounded p-0.5 text-muted-foreground transition-colors hover:text-destructive"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {featured && (
         <div className="mt-6 space-y-5">
           <div className="border-l-4 border-primary pl-5 sm:pl-6" data-testid="countdown-stats">
             <h3 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
               <span className="text-primary">
-                {countdown.boxesUntil.toLocaleString()} weeks
+                {featured.countdown.boxesUntil.toLocaleString()} weeks
               </span>{" "}
               until {displayLabel}.
             </h3>
             <p className="mt-3 font-mono text-sm tabular-nums text-muted-foreground">
-              = {countdown.daysUntil.toLocaleString()} days ·{" "}
+              = {featured.countdown.daysUntil.toLocaleString()} days ·{" "}
               <strong className="text-foreground">
-                {countdown.percentOfRemainingWeeks.toFixed(1)}% of the weeks you
-                have left
+                {featured.countdown.percentOfRemainingWeeks.toFixed(1)}% of the
+                weeks you have left
               </strong>
             </p>
-            {countdown.beyondGrid && (
+            {featured.countdown.beyondGrid && (
               <p className="mt-2 text-xs text-event-amber">
                 Heads up: that date lands beyond your life expectancy grid.
               </p>
@@ -218,8 +341,9 @@ export function CountdownPanel({
               />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              The highlighted band is the stretch of your life between now and{" "}
-              {displayLabel}. One box per week.
+              {upcoming.length > 1
+                ? "Each color band ends at one of your dates. One box per week."
+                : `The highlighted band is the stretch of your life between now and ${displayLabel}. One box per week.`}
             </p>
           </div>
 
