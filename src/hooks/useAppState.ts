@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   computeLifeSpan,
   parseDateInput,
@@ -40,11 +40,13 @@ export interface AppState {
 }
 
 export function useAppState(): AppState {
-  const persisted = useRef(loadState()).current;
+  // Lazy initializers: read persisted state and any share-link params once,
+  // on first render only.
+  const [persisted] = useState(loadState);
   // A shared link's prefill params beat persisted state (the recipient asked
   // for this exact setup by opening the link), then vanish from the URL so
   // the recipient's own edits persist as usual.
-  const shared = useRef(parseShareParams(window.location.hash)).current;
+  const [shared] = useState(() => parseShareParams(window.location.hash));
   useEffect(() => {
     if (shared) stripShareParams();
   }, [shared]);

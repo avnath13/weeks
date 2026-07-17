@@ -115,11 +115,16 @@ export function LifeGrid({
       ro.disconnect();
       cancelAnimationFrame(animRef.current);
     };
-  }, [signature, span, habits, reclaimMode, reducedMotion]);
+  }, [signature, span, habits, reclaimMode, extraSegments, reducedMotion]);
+
+  // Screen readers can't see the canvas; give them the actual numbers.
+  const gridLabel = span.onBonusTime
+    ? `Your life in weeks. You have outlived your set life expectancy; every week is a bonus.`
+    : `Your life in weeks, one box per week. Week ${span.currentWeekNumber.toLocaleString()} of ${span.totalWeeks.toLocaleString()}; ${span.remainingWeeks.toLocaleString()} weeks remaining.`;
 
   return (
     <div ref={containerRef} className="w-full" data-testid="life-grid">
-      <canvas ref={canvasRef} aria-label="Your life in weeks, one box per week" role="img" />
+      <canvas ref={canvasRef} aria-label={gridLabel} role="img" />
     </div>
   );
 }

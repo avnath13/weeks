@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { DAYS_PER_YEAR, type LifeSpan } from "@/lib/timeMath";
 import { formatHoursPerDay } from "@/lib/timeMath";
 import { cssVarHsl } from "@/lib/gridDraw";
@@ -101,13 +101,10 @@ export function LifetimeStats({
   // Sort by years-spent ONCE per visit, then freeze the order. Re-sorting
   // live would make a row leap to a new position mid-drag as its value
   // crosses a neighbor's, yanking the slider out from under the finger.
-  const orderRef = useRef<string[] | null>(null);
-  if (orderRef.current === null) {
-    orderRef.current = [...unsortedRows]
-      .sort((x, y) => y.spent - x.spent)
-      .map((r) => r.id);
-  }
-  const rows = orderRef.current
+  const [order] = useState(() =>
+    [...unsortedRows].sort((x, y) => y.spent - x.spent).map((r) => r.id),
+  );
+  const rows = order
     .map((id) => unsortedRows.find((r) => r.id === id))
     .filter((r): r is (typeof unsortedRows)[number] => r !== undefined);
 

@@ -317,6 +317,7 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
             <div
               className="mt-3 flex items-center gap-2.5 rounded-lg bg-accent p-4 text-sm"
               data-testid="ocr-reading"
+              role="status"
             >
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span>

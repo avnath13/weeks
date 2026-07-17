@@ -47,24 +47,27 @@ export default function App() {
   const { theme, toggleTheme } = useTheme();
   const state = useAppState();
   const { span } = state;
-  const [tab, setTab] = useState<Tab>(tabFromHash);
+  const [rawTab, setRawTab] = useState<Tab>(tabFromHash);
+  // Tools need a valid birth date; render Life until there is one. Derived
+  // rather than set in an effect so there's no bounce frame.
+  const tab: Tab = span ? rawTab : "life";
 
   // Hash <-> tab sync (back button works, tabs are linkable).
   useEffect(() => {
-    const onHash = () => setTab(tabFromHash());
+    const onHash = () => setRawTab(tabFromHash());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
   const goTo = (t: Tab) => {
-    setTab(t);
+    setRawTab(t);
     window.history.replaceState(null, "", `#${t}`);
   };
 
-  // Tools need a valid birth date; bounce back to Life until there is one.
+  // Keep the address bar honest when a tool tab is gated back to Life.
   useEffect(() => {
-    if (!span && tab !== "life") goTo("life");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [span, tab]);
+    if (!span && tabFromHash() !== "life")
+      window.history.replaceState(null, "", "#life");
+  }, [span]);
 
   const combinedLadder = useMemo(() => {
     if (!span || state.habits.length === 0) return null;
@@ -74,6 +77,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <a
+        href="#main"
+        className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+      >
+        Skip to content
+      </a>
       <Header theme={theme} onToggleTheme={toggleTheme} />
 
       {span && (
@@ -105,7 +114,10 @@ export default function App() {
         </nav>
       )}
 
-      <main className="mx-auto max-w-5xl px-4 pb-24 pt-10 sm:px-6 sm:pt-14">
+      <main
+        id="main"
+        className="mx-auto max-w-5xl px-4 pb-24 pt-10 sm:px-6 sm:pt-14"
+      >
         {(!span || tab === "life") && (
           <div className="space-y-12">
             <Hero
@@ -218,6 +230,7 @@ export default function App() {
                 setHabits={state.setHabits}
                 reclaimMode={state.reclaimMode}
                 setReclaimMode={state.setReclaimMode}
+                now={state.now}
               />
               <ScreenshotImport span={span} setHabits={state.setHabits} />
             </div>

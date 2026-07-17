@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Shuffle } from "lucide-react";
 import {
   formatHoursPerDay,
@@ -16,20 +16,18 @@ interface RevealStatsProps {
 }
 
 export function RevealStats({ span, habits }: RevealStatsProps) {
-  const [eqIndex, setEqIndex] = useState(0);
-
   const sorted = useMemo(
     () => [...habits].sort((a, b) => b.hoursPerDay - a.hoursPerDay),
     [habits],
   );
   const top = sorted[0];
 
-  // Restart the equivalence rotation when the headline habit changes, so a
-  // shuffled index from the previous habit doesn't pick a stale line.
-  const topId = top?.id;
-  useEffect(() => {
-    setEqIndex(0);
-  }, [topId]);
+  // The shuffle count is stored with the habit it belongs to, so switching
+  // headline habits restarts the rotation instead of reusing a stale index.
+  const [shuffle, setShuffle] = useState<{ id: string | null; count: number }>(
+    { id: null, count: 0 },
+  );
+  const eqIndex = shuffle.id === top?.id ? shuffle.count : 0;
   const topCost = top ? habitCost(top.hoursPerDay, span) : null;
   const topLadder = topCost ? formatLadder(topCost) : null;
 
@@ -90,7 +88,7 @@ export function RevealStats({ span, habits }: RevealStatsProps) {
         {equivalences.length > 0 && (
           <button
             type="button"
-            onClick={() => setEqIndex((i) => i + 1)}
+            onClick={() => setShuffle({ id: top.id, count: eqIndex + 1 })}
             className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
             data-testid="equivalence"
           >

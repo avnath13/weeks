@@ -204,6 +204,7 @@ export function ShareSection({
         <p
           className="mt-2 flex items-center gap-1.5 text-sm text-event-emerald"
           data-testid="share-feedback"
+          role="status"
         >
           <Check className="h-4 w-4" /> {feedback}
         </p>

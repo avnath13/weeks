@@ -39,14 +39,14 @@ export interface CardData {
   lifeExpectancy: number;
 }
 
-interface CardText {
+export interface CardText {
   kicker: string;
   title: string;
   sub: string;
   accent: string;
 }
 
-function habitCardText(data: CardData): CardText {
+export function habitCardText(data: CardData): CardText {
   const { span, habits, reclaimMode } = data;
   if (habits.length === 0) {
     return {
@@ -76,12 +76,6 @@ function habitCardText(data: CardData): CardText {
     sub: `${ladder.weeks} weeks · ${ladder.months} months · ${ladder.percent}% of my remaining waking time`,
     accent: cssVarHsl(top.colorVar),
   };
-}
-
-/** Kept for callers/tests that want the headline without rendering. */
-export function cardHeadline(data: CardData): { title: string; sub: string } {
-  const t = habitCardText(data);
-  return { title: t.title, sub: t.sub };
 }
 
 async function loadFonts(): Promise<void> {

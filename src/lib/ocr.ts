@@ -194,7 +194,10 @@ async function paddleRecognize(canvas: HTMLCanvasElement): Promise<string> {
 }
 
 /** Fallback engine: Tesseract in single-column mode. */
-async function tesseractRecognize(canvas: HTMLCanvasElement): Promise<string> {
+async function tesseractRecognize(
+  canvas: HTMLCanvasElement,
+  timeoutMs: number,
+): Promise<string> {
   const Tesseract = await import("tesseract.js");
   const worker = await Tesseract.createWorker("eng");
   try {
@@ -202,7 +205,9 @@ async function tesseractRecognize(canvas: HTMLCanvasElement): Promise<string> {
       tessedit_pageseg_mode: "4" as never,
       preserve_interword_spaces: "1",
     });
-    const result = await worker.recognize(canvas);
+    // Race the timeout INSIDE the try so a timeout still hits the finally
+    // and terminates the worker, instead of leaving it burning CPU.
+    const result = await withTimeout(worker.recognize(canvas), timeoutMs);
     return result.data.text ?? "";
   } finally {
     void worker.terminate();
@@ -240,7 +245,7 @@ export async function recognizeScreenTime(file: File): Promise<ParseResult> {
   }
 
   try {
-    const text = await withTimeout(tesseractRecognize(canvas), OCR_TIMEOUT_MS);
+    const text = await tesseractRecognize(canvas, OCR_TIMEOUT_MS);
     console.debug("[weeks] tesseract OCR text:\n", text);
     lastOcrDiagnostic += `--- tesseract ---\n${text}\n`;
     const parsed = parseScreenTimeText(text);

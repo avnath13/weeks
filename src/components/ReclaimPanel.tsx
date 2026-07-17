@@ -29,6 +29,7 @@ interface ReclaimPanelProps {
   setHabits: React.Dispatch<React.SetStateAction<SelectedHabit[]>>;
   reclaimMode: boolean;
   setReclaimMode: (v: boolean) => void;
+  now: number;
 }
 
 export function ReclaimPanel({
@@ -37,6 +38,7 @@ export function ReclaimPanel({
   setHabits,
   reclaimMode,
   setReclaimMode,
+  now,
 }: ReclaimPanelProps) {
   const [commitment, setCommitment] = useState<Commitment | null>(
     loadCommitment,
@@ -64,9 +66,9 @@ export function ReclaimPanel({
   const progress = useMemo(
     () =>
       commitment
-        ? commitmentProgress(commitment, checkIns, span, Date.now())
+        ? commitmentProgress(commitment, checkIns, span, now)
         : null,
-    [commitment, checkIns, span],
+    [commitment, checkIns, span, now],
   );
 
   const commit = () => {
@@ -188,6 +190,7 @@ export function ReclaimPanel({
           <div
             className="rounded-lg bg-event-emerald/10 p-4 text-center"
             data-testid="reclaim-total"
+            aria-live="polite"
           >
             <p className="font-display text-3xl font-extrabold text-event-emerald">
               +{Math.round(totalReclaimed).toLocaleString()} weeks
@@ -300,6 +303,7 @@ export function ReclaimPanel({
           <div
             className="rounded-lg bg-event-emerald/10 p-4 text-center"
             data-testid="commitment-banked"
+            aria-live="polite"
           >
             <p className="font-display text-2xl font-extrabold text-event-emerald">
               {progress.totalWeeksBanked > 0

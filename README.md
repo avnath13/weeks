@@ -28,15 +28,20 @@ its design system (tokens, Sora/Inter, motion, event palette).
   with a Tesseract.js fallback) into per-app hours. Nothing is uploaded,
   ever.
 - **Reclaim mode.** Drag a habit down and watch the weeks return as an
-  emerald band.
+  emerald band. Then **commit**: pin the targets, check in over time
+  (screenshot re-imports count automatically), and watch the weeks you
+  actually banked - progress is computed from check-in evidence only.
 - **Lifetime.** The retrospective view: years already spent sleeping,
   working, and scrolling, next to what is still to come.
-- **Countdown.** Name a date and see the weeks between here and there
-  highlighted on your grid, with "time left today" rings.
-- **Share cards.** Deterministic canvas renders, 1080×1920 story and
-  1200×630 OG, in the app's editorial style.
-- Light/dark themes, mobile-first, localStorage only, no accounts, no
-  backend. A Settings tab resets everything.
+- **Countdown.** Name up to six dates and see the weeks between here and
+  there as layered bands on your grid, with "time left today" rings.
+- **Share cards + links.** Deterministic canvas renders, 1080×1920 story
+  and 1200×630 OG, in the app's editorial style. "Copy link" encodes your
+  setup in the URL hash so a friend lands on a pre-filled grid - hash
+  fragments never reach a server.
+- Light/dark themes, mobile-first, installable PWA (the OCR engine caches
+  for offline use), localStorage only, no accounts, no backend. Settings
+  offers a full JSON backup/restore and a reset.
 
 <table>
   <tr>
@@ -52,8 +57,9 @@ its design system (tokens, Sora/Inter, motion, event palette).
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # vitest: time math + Screen Time parser (50 tests)
-npm run build    # typecheck + production bundle
+npm test         # vitest: time math, parser, storage, commitments (117 tests)
+npm run lint     # eslint + typecheck
+npm run build    # typecheck + production bundle + service worker
 ```
 
 Screenshots regenerate with `node scripts/screenshots.mjs` while the dev
