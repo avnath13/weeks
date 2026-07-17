@@ -68,7 +68,9 @@ export function useAppState(): AppState {
   const [hiddenChips, setHiddenChips] = useState<string[]>(
     persisted?.hiddenChips ?? [],
   );
-  const [reclaimMode, setReclaimMode] = useState(false);
+  const [reclaimMode, setReclaimMode] = useState(
+    persisted?.reclaimMode ?? false,
+  );
 
   // "now" ticks weekly-precision state forward once a minute - cheap, and
   // keeps a left-open tab honest across midnight boundaries.
@@ -103,11 +105,12 @@ export function useAppState(): AppState {
           sleepHours,
           habits,
           hiddenChips,
+          reclaimMode,
         }),
       400,
     );
     return () => window.clearTimeout(id);
-  }, [birthDateInput, lifeExpectancy, sleepHours, habits, hiddenChips]);
+  }, [birthDateInput, lifeExpectancy, sleepHours, habits, hiddenChips, reclaimMode]);
 
   return {
     birthDateInput,

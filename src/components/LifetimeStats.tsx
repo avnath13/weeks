@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { DAYS_PER_YEAR, type LifeSpan } from "@/lib/timeMath";
 import { formatHoursPerDay } from "@/lib/timeMath";
 import { cssVarHsl } from "@/lib/gridDraw";
+import { loadLifetimeHours, saveLifetimeHours } from "@/lib/storage";
 
 /**
  * Retrospective lifetime stats, inspired by lifeecalendar.com's calculator:
@@ -32,21 +33,14 @@ const DEFAULT_ACTIVITIES: Activity[] = [
   { id: "exercise", label: "Exercising", emoji: "🏃", hoursPerDay: 0.3, colorVar: "--event-emerald", startAge: 10 },
 ];
 
-const STORAGE_KEY = "weeks.lifetime.v1";
-
 function loadActivities(): Activity[] {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_ACTIVITIES;
-    const saved = JSON.parse(raw) as Record<string, number>;
-    return DEFAULT_ACTIVITIES.map((a) =>
-      typeof saved[a.id] === "number" && Number.isFinite(saved[a.id])
-        ? { ...a, hoursPerDay: Math.min(12, Math.max(0, saved[a.id])) }
-        : a,
-    );
-  } catch {
-    return DEFAULT_ACTIVITIES;
-  }
+  const saved = loadLifetimeHours();
+  if (!saved) return DEFAULT_ACTIVITIES;
+  return DEFAULT_ACTIVITIES.map((a) =>
+    typeof saved[a.id] === "number"
+      ? { ...a, hoursPerDay: Math.min(12, Math.max(0, saved[a.id])) }
+      : a,
+  );
 }
 
 interface LifetimeStatsProps {
@@ -63,16 +57,9 @@ export function LifetimeStats({
   const [activities, setActivities] = useState<Activity[]>(loadActivities);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(
-          Object.fromEntries(activities.map((a) => [a.id, a.hoursPerDay])),
-        ),
-      );
-    } catch {
-      /* private mode: stats still work, they just do not persist */
-    }
+    saveLifetimeHours(
+      Object.fromEntries(activities.map((a) => [a.id, a.hoursPerDay])),
+    );
   }, [activities]);
 
   // Days, not weeks: livedWeeks is floored to whole weeks, which reads a day

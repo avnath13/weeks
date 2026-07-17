@@ -9,8 +9,7 @@ import { LifeGrid } from "@/components/LifeGrid";
 import { cssVarHsl, type GridSegment } from "@/lib/gridDraw";
 import { renderCountdownCard, shareOrDownload } from "@/lib/shareCard";
 import type { Theme } from "@/hooks/useTheme";
-
-const STORAGE_KEY = "weeks.countdown.v1";
+import { loadCountdownRaw, saveCountdownRaw } from "@/lib/storage";
 
 interface Saved {
   label: string;
@@ -18,17 +17,12 @@ interface Saved {
 }
 
 function loadSaved(): Saved {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { label: "", dateInput: "" };
-    const parsed = JSON.parse(raw) as Partial<Saved>;
-    return {
-      label: typeof parsed.label === "string" ? parsed.label.slice(0, 40) : "",
-      dateInput: typeof parsed.dateInput === "string" ? parsed.dateInput : "",
-    };
-  } catch {
-    return { label: "", dateInput: "" };
-  }
+  const parsed = loadCountdownRaw() as Partial<Saved> | null;
+  if (!parsed || typeof parsed !== "object") return { label: "", dateInput: "" };
+  return {
+    label: typeof parsed.label === "string" ? parsed.label.slice(0, 40) : "",
+    dateInput: typeof parsed.dateInput === "string" ? parsed.dateInput : "",
+  };
 }
 
 /** "Time left today" rings, hat-tip to lifeecalendar's countdown timer. */
@@ -116,14 +110,7 @@ export function CountdownPanel({
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ label, dateInput }),
-      );
-    } catch {
-      /* private mode: countdown still works without persistence */
-    }
+    saveCountdownRaw({ label, dateInput });
   }, [label, dateInput]);
 
   const targetMs = useMemo(() => parseDateInput(dateInput), [dateInput]);
