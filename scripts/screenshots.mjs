@@ -1,12 +1,13 @@
 /**
  * Generate README screenshots against the local dev server.
- * Usage: node scripts/screenshots.mjs  (dev server must be running on :5173)
+ * Usage: node scripts/screenshots.mjs            (dev server on :5173)
+ *        BASE=http://localhost:5199 node scripts/screenshots.mjs
  */
 import puppeteer from "puppeteer-core";
 import { mkdirSync } from "node:fs";
 
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const BASE = "http://localhost:5173";
+const BASE = process.env.BASE || "http://localhost:5173";
 const OUT = new URL("../docs/screenshots/", import.meta.url).pathname;
 
 const DEMO_STATE = {
