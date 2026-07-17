@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { WEEKS_PER_YEAR, type LifeSpan } from "@/lib/timeMath";
+import { DAYS_PER_YEAR, type LifeSpan } from "@/lib/timeMath";
 import { formatHoursPerDay } from "@/lib/timeMath";
 import { cssVarHsl } from "@/lib/gridDraw";
 
@@ -41,7 +41,7 @@ function loadActivities(): Activity[] {
     const saved = JSON.parse(raw) as Record<string, number>;
     return DEFAULT_ACTIVITIES.map((a) =>
       typeof saved[a.id] === "number" && Number.isFinite(saved[a.id])
-        ? { ...a, hoursPerDay: Math.min(16, Math.max(0, saved[a.id])) }
+        ? { ...a, hoursPerDay: Math.min(12, Math.max(0, saved[a.id])) }
         : a,
     );
   } catch {
@@ -75,9 +75,11 @@ export function LifetimeStats({
     }
   }, [activities]);
 
-  const ageYears = span.livedWeeks / WEEKS_PER_YEAR;
+  // Days, not weeks: livedWeeks is floored to whole weeks, which reads a day
+  // shy of the real age on birthdays ("You are 39" on the 40th).
+  const ageYears = span.livedDays / DAYS_PER_YEAR;
   const yearsTo = (hoursPerDay: number, years: number) =>
-    Math.max(0, (hoursPerDay * years * 365.2425) / 24 / 365.2425);
+    Math.max(0, (hoursPerDay * years) / 24);
 
   const unsortedRows = [
     {

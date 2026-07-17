@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, ClipboardCopy, Loader2, Plus, ShieldCheck, Upload } from "lucide-react";
 import {
   getOcrDiagnostic,
@@ -142,6 +142,24 @@ export function ScreenshotImport({ span, setHabits }: ScreenshotImportProps) {
       setStage({ kind: "error", message: OCR_ERROR_COPY[reason] });
     }
   }, []);
+
+  // The dropzone advertises paste; accept a screenshot pasted anywhere on the
+  // page while the dropzone is showing (but not while the user is typing).
+  useEffect(() => {
+    if (stage.kind !== "idle") return;
+    const onPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && /^(input|textarea)$/i.test(target.tagName)) return;
+      const file = Array.from(e.clipboardData?.items ?? [])
+        .find((item) => item.kind === "file" && item.type.startsWith("image/"))
+        ?.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      void handleFile(file);
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [stage.kind, handleFile]);
 
   const updateRow = (index: number, patch: Partial<EditableRow>) => {
     setStage((s) =>

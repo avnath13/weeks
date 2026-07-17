@@ -199,6 +199,14 @@ describe("capHabitHours", () => {
   it("returns 0 when budget exhausted", () => {
     expect(capHabitHours(2, 16, 16).hours).toBe(0);
   });
+  it("never rounds the capped value above the budget", () => {
+    // budget = 16 - 11.87 = 4.13; rounding to the nearest quarter would
+    // give 4.25 > budget. Flooring gives 4.
+    const r = capHabitHours(10, 11.87, 16);
+    expect(r.capped).toBe(true);
+    expect(r.hours).toBeLessThanOrEqual(16 - 11.87);
+    expect(r.hours).toBe(4);
+  });
 });
 
 describe("reclaimedWeeks", () => {

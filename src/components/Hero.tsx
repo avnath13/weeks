@@ -18,6 +18,14 @@ interface HeroProps {
   onSleepChange: (v: number) => void;
 }
 
+/** Today as a YYYY-MM-DD string in LOCAL time; toISOString() is UTC and
+ * blocks picking "today" for users ahead of UTC in the evening. */
+function todayLocalIso(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 const ISSUE_COPY: Record<BirthDateIssue, string> = {
   empty: "",
   invalid: "That date doesn't exist. Check the day and month.",
@@ -108,7 +116,7 @@ export function Hero({
             type="date"
             data-testid="birthdate-input"
             value={birthDateInput}
-            max={new Date().toISOString().slice(0, 10)}
+            max={todayLocalIso()}
             onChange={(e) => onBirthDateChange(e.target.value)}
             className="mt-1.5 w-full border-b-2 border-border bg-transparent py-2 font-mono text-xl font-bold tabular-nums outline-none transition-colors focus:border-primary"
           />

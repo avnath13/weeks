@@ -23,9 +23,10 @@ its design system (tokens, Sora/Inter, motion, event palette).
   Meetings) or add your own; drag sliders and watch the grid react beside the
   controls. Everything is denominated in your waking hours (24h minus your
   sleep).
-- **Screen Time import.** Drop an iOS Screen Time or Android Digital
-  Wellbeing screenshot; it is OCR'd entirely on-device (Tesseract.js) into
-  per-app hours. Nothing is uploaded, ever.
+- **Screen Time import.** Drop or paste an iOS Screen Time or Android
+  Digital Wellbeing screenshot; it is OCR'd entirely on-device (PaddleOCR,
+  with a Tesseract.js fallback) into per-app hours. Nothing is uploaded,
+  ever.
 - **Reclaim mode.** Drag a habit down and watch the weeks return as an
   emerald band.
 - **Lifetime.** The retrospective view: years already spent sleeping,
@@ -61,4 +62,7 @@ server is running.
 ## Privacy
 
 Birth date, habits, and screenshots never leave the browser. There is no
-server, no analytics, and no account. The Settings tab wipes all local data.
+server and no account. The deployed site uses Vercel Web Analytics for
+anonymous, cookie-less page-view counts; none of your data (birth date,
+habits, screenshots) is ever sent anywhere. The Settings tab wipes all
+local data.

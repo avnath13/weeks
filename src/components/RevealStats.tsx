@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Shuffle } from "lucide-react";
 import {
   formatHoursPerDay,
@@ -23,6 +23,13 @@ export function RevealStats({ span, habits }: RevealStatsProps) {
     [habits],
   );
   const top = sorted[0];
+
+  // Restart the equivalence rotation when the headline habit changes, so a
+  // shuffled index from the previous habit doesn't pick a stale line.
+  const topId = top?.id;
+  useEffect(() => {
+    setEqIndex(0);
+  }, [topId]);
   const topCost = top ? habitCost(top.hoursPerDay, span) : null;
   const topLadder = topCost ? formatLadder(topCost) : null;
 

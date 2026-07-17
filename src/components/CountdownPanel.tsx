@@ -44,7 +44,9 @@ function TodayRings() {
   const msLeft = endOfDay.getTime() - now.getTime();
   const totalSec = Math.floor(msLeft / 1000);
   const rings = [
-    { label: "hours", value: Math.floor(totalSec / 3600), max: 24 },
+    // Clamp: a fall-back DST day has 25 wall-clock hours, which would
+    // otherwise push the ring past full (negative dashoffset).
+    { label: "hours", value: Math.min(24, Math.floor(totalSec / 3600)), max: 24 },
     { label: "minutes", value: Math.floor((totalSec % 3600) / 60), max: 60 },
     { label: "seconds", value: totalSec % 60, max: 60 },
   ];

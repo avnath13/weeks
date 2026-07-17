@@ -145,6 +145,24 @@ describe("parseScreenTimeText - OCR noise", () => {
     const daily = parseScreenTimeText("Instagram\n2h 30m");
     expect(daily.guessedPeriod).toBe("day");
   });
+
+  it("does not treat bare Day/Week selector chrome as a weekly marker", () => {
+    // A Day-view screenshot whose tab strip reads "This Week": the mere
+    // presence of week words must NOT flip the period to weekly (which
+    // would silently divide every duration by 7).
+    const result = parseScreenTimeText(
+      "Screen Time\nThis Week\nToday\n2 hr, 5 min\nMost Used\nInstagram\n2h 5m",
+    );
+    expect(result.guessedPeriod).toBe("day");
+  });
+
+  it("still detects weekly from the Daily Average headline alone", () => {
+    const result = parseScreenTimeText(
+      "Daily Average\n2 hr, 4 min\nMost Used\nInstagram\n14h 30m",
+    );
+    expect(result.guessedPeriod).toBe("week");
+    expect(result.periodConfident).toBe(true);
+  });
 });
 
 // The real iOS Week view a user reported: a Limits section (app time LIMITS,

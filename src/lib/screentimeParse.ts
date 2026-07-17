@@ -170,7 +170,7 @@ export function parseScreenTimeText(text: string): ParseResult {
   // screenshot, so their mere presence is useless. What actually differs by
   // view: the Week view headlines "Daily Average" and compares "from last
   // week"; the Day view headlines "Today". Those are the reliable signals.
-  if (/daily average|from last week|last week|this week|weekly/.test(full)) {
+  if (/daily average|from last week/.test(full)) {
     guessedPeriod = "week";
     periodConfident = true;
   } else if (/\btoday\b|\byesterday\b|digital wellbeing|dashboard/.test(full)) {

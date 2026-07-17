@@ -11,6 +11,7 @@ export const MS_PER_DAY = 86_400_000;
 export const MS_PER_WEEK = MS_PER_DAY * 7;
 export const WEEKS_PER_MONTH = 4.345;
 export const WEEKS_PER_YEAR = 52.1775;
+export const DAYS_PER_YEAR = 365.2425;
 
 export const LIFE_EXPECTANCY_MIN = 40;
 export const LIFE_EXPECTANCY_MAX = 110;
@@ -173,7 +174,8 @@ export function capHabitHours(
 ): { hours: number; capped: boolean } {
   const budget = Math.max(0, wakingHoursPerDay - otherHabitsTotal);
   if (requestedHours <= budget) return { hours: requestedHours, capped: false };
-  return { hours: Math.round(budget * 4) / 4, capped: true };
+  // Floor to the quarter-hour: rounding could land above the budget.
+  return { hours: Math.floor(budget * 4) / 4, capped: true };
 }
 
 /** Weeks reclaimed by reducing a habit from `fromHours` to `toHours` per day. */
